@@ -76,23 +76,22 @@ def build_datagolf_players_dict(html):
 
 
 def get_dg_ranks(players, dict_players):
-    cells = []
 
     if not players:
         raise ("No data found.")
 
-    for name in players:
-
+    values = []
+    for player in players:
         # convert to uppercase and remove dash if there is one
-        name = name.upper().replace("-", "")
+        player = player.upper().replace("-", "")
 
-        if name in dict_players:
-            cells.append([dict_players[name]["place"]])
+        if player in dict_players:
+            values.append([dict_players[player]["place"]])
         else:
-            cells.append(["???"])
-            print(f"{name}: ???")
+            values.append(["???"])
+            print(f"{player}: ???")
 
-    return cells
+    return values
 
 
 def main():
