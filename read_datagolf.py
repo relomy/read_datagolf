@@ -1,24 +1,24 @@
-from os import path
-
-import requests
 import selenium.webdriver.chrome.service as chrome_service
 from bs4 import BeautifulSoup
-from googleapiclient.discovery import build
-from httplib2 import Http
-from oauth2client import client, file, tools
+
 from selenium import webdriver
+
+from DFSsheet import DFSsheet
 
 
 def get_datagolf_html():
     url = "https://datagolf.ca/live-predictive-model"
-    bin_chromedriver = "E:\\Programs\\chromedrive_chrome75\\chromedriver.exe"
+    # bin_chromedriver = "E:\\Programs\\chromedrive_chrome75\\chromedriver.exe"
+    bin_chromedriver = r"C:\Users\alewando\Documents\chromedriver\chromedriver.exe"
 
     # start headless webdriver
     service = chrome_service.Service(bin_chromedriver)
     service.start()
     options = webdriver.ChromeOptions()
     options.headless = True
-    driver = webdriver.Remote(service.service_url, desired_capabilities=options.to_capabilities())
+    driver = webdriver.Remote(
+        service.service_url, desired_capabilities=options.to_capabilities()
+    )
     driver.get(url)
 
     # print html for debugging
@@ -27,7 +27,7 @@ def get_datagolf_html():
     return driver.page_source
 
 
-def parse_html(html):
+def build_datagolf_players_dict(html):
     player_dict = {}
 
     # find our table in the html
@@ -75,82 +75,49 @@ def parse_html(html):
     return player_dict
 
 
-def write_column(service, spreadsheet_id, range_name, values):
-    """Write a set of values to a spreadsheet."""
-    body = {"values": values}
-    value_input_option = "USER_ENTERED"
-    result = (
-        service.spreadsheets()
-        .values()
-        .update(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption=value_input_option,
-            body=body,
-        )
-        .execute()
-    )
-    print("{0} cells updated.".format(result.get("updatedCells")))
-
-
-def find_sheet_id(service, spreadsheet_id, title):
-    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    sheets = sheet_metadata.get("sheets", "")
-    for sheet in sheets:
-        if title in sheet["properties"]["title"]:
-            # logger.debug("Sheet ID for {} is {}".format(title, sheet["properties"]["sheetId"]))
-            return sheet["properties"]["sheetId"]
-
-
-def get_values_from_PGA_sheet():
-    result = (
-        service.spreadsheets()
-        .values()
-        .get(spreadsheetId=spreadsheet_id, range=RANGE_NAME)
-        .execute()
-    )
-    values = result.get("values", [])
-
+def get_dg_ranks(players, dict_players):
     cells = []
-    if not values:
-        exit("No data found.")
-    else:
-        for row in values:
-            name = row[0].upper()
 
-            # remove dash if there is one
-            name = name.replace("-", "")
+    if not players:
+        raise ("No data found.")
 
-            if name in players:
-                cells.append([players[name]["place"]])
-            else:
-                cells.append(["???"])
-                print(f"{name}: ???")
+    for name in players:
+
+        # convert to uppercase and remove dash if there is one
+        name = name.upper().replace("-", "")
+
+        if name in dict_players:
+            cells.append([dict_players[name]["place"]])
+        else:
+            cells.append(["???"])
+            print(f"{name}: ???")
+
     return cells
 
 
-html = get_datagolf_html()
-with open("content.html", mode="r", encoding="utf-8") as fp:
-    html = fp.read()
+def main():
+    # html = get_datagolf_html()
 
-    players = parse_html(html)
+    with open("content.html", mode="r", encoding="utf-8") as fp:
+        html = fp.read()
 
-    dir = "C:\\Users\\Adam\\Documents\\git\\read_datagolf_live"
-    SCOPES = "https://www.googleapis.com/auth/spreadsheets"
-    store = file.Storage(path.join(dir, "token.json"))
-    creds = store.get()
-    if not creds or creds.invalid:
-        flow = client.flow_from_clientsecrets(path.join(dir, "token.json"), SCOPES)
-        creds = tools.run_flow(flow, store)
-    service = build("sheets", "v4", http=creds.authorize(Http()))
+        # parse datagolf html into a dict of players
+        dict_players = build_datagolf_players_dict(html)
 
-    # call the Sheets API
-    spreadsheet_id = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
-    sport = "PGAMain"
-    RANGE_NAME = "{}!B2:I".format(sport)
+        # create DFSsheet object
+        sport = "PGAMain"
+        sheet = DFSsheet(sport)
 
-    # sheet_id = find_sheet_id(service, spreadsheet_id, sport)
+        # get players from DFS sheet
+        sheet_players = sheet.get_players()
 
-    values = get_values_from_PGA_sheet()
-    rng = "{}!I2:{}".format(sport, len(values) + 1)
-    write_column(service, spreadsheet_id, rng, values)
+        # look up players from sheet in datagolf dictionary
+        dg_ranks = get_dg_ranks(sheet_players, dict_players)
+
+        # write datagolf ranks to mc
+        sheet.write_column("I", dg_ranks)
+
+
+if __name__ == "__main__":
+    main()
+
