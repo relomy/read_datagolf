@@ -74,9 +74,16 @@ def get_dg_ranks(players, dict_players):
         player = player.upper().replace("-", "")
 
         if player in dict_players:
-            values.append([dict_players[player]["place"]])
+            values.append(
+                [
+                    dict_players[player]["place"],
+                    dict_players[player]["total_score"],
+                    dict_players[player]["thru_hole"],
+                    dict_players[player]["today_score"],
+                ]
+            )
         else:
-            values.append(["???"])
+            values.append(["???", "", "", ""])
             print(f"{player}: ???")
 
     return values
@@ -108,7 +115,7 @@ def main():
         dg_ranks = get_dg_ranks(sheet_players, dict_players)
 
         # write datagolf ranks to mc
-        sheet.write_column("I", dg_ranks)
+        sheet.write_columns("F", "I", dg_ranks)
 
 
 if __name__ == "__main__":
