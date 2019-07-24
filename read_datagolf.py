@@ -26,7 +26,7 @@ def get_datagolf_html():
     return driver.page_source
 
 
-def build_datagolf_players_dict(html):
+def build_datagolf_players_dict(html, correct_names={}):
     player_dict = {}
 
     # find our table in the html
@@ -46,30 +46,21 @@ def build_datagolf_players_dict(html):
         "perc_make_cut": "col_text5",
     }
     for row in datarows:
-        name = massage_name(row.find(id=columns["name"]).text)
+        name = row.find(id=columns["name"]).text
+
+        # fix name if it needs it
+        if name in correct_names:
+            first_last = correct_names[name]
+        else:
+            name = name.replace("-", "")
+            first_last = " ".join(name.split(" ", 1)[::-1])
 
         # add player data to dict
-        player_dict[name] = {}
+        player_dict[first_last] = {}
         for col in columns.keys():
-            player_dict[name][col] = row.find(id=columns[col]).text
+            player_dict[first_last][col] = row.find(id=columns[col]).text
 
     return player_dict
-
-
-def massage_name(name):
-    correct_names = {
-        "CABRERA BELLO RAFA": "RAFA CABRERA BELLO",
-        "VAN ROOYEN ERIK": "ERIK VAN ROOYEN",
-        "LORENZO-VERA MICHAEL": "MIKE LORENZOVERA",
-        "PAPADATOS DIMITRIOS": "DIMI PAPADATOS",
-    }
-
-    if name in correct_names:
-        return correct_names[name]
-
-    name = name.replace("-", "")
-
-    return " ".join(name.split(" ", 1)[::-1])
 
 
 def get_dg_ranks(players, dict_players):
@@ -98,7 +89,13 @@ def main():
         html = fp.read()
 
         # parse datagolf html into a dict of players
-        dict_players = build_datagolf_players_dict(html)
+        correct_names = {
+            "CABRERA BELLO RAFA": "RAFA CABRERA BELLO",
+            "VAN ROOYEN ERIK": "ERIK VAN ROOYEN",
+            "LORENZO-VERA MICHAEL": "MIKE LORENZOVERA",
+            "PAPADATOS DIMITRIOS": "DIMI PAPADATOS",
+        }
+        dict_players = build_datagolf_players_dict(html, correct_names)
 
         # create DFSsheet object
         sport = "PGAMain"
