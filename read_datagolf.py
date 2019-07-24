@@ -1,6 +1,5 @@
 import selenium.webdriver.chrome.service as chrome_service
 from bs4 import BeautifulSoup
-
 from selenium import webdriver
 
 from DFSsheet import DFSsheet
@@ -36,43 +35,41 @@ def build_datagolf_players_dict(html):
 
     # loop through the datarows
     datarows = table_div.find_all("div", {"class": "datarow"})
+
+    # the easiest way seemed to use the id column
+    columns = {
+        "place": "col_text0",
+        "name": "col_text1",
+        "total_score": "col_text2",
+        "thru_hole": "col_text3",
+        "today_score": "col_text4",
+        "perc_make_cut": "col_text5",
+    }
     for row in datarows:
-        # the easiest way seemed to use the id column
-        place = row.find(id="col_text0").text
-        name = row.find(id="col_text1").text
-        total_score = row.find(id="col_text2").text
-        thru_hole = row.find(id="col_text3").text
-        today_score = row.find(id="col_text4").text
-        make_cut_perc = row.find(id="col_text5").text
+        name = massage_name(row.find(id=columns["name"]).text)
 
-        # split name by " ", reverse it, and convert to title case
-        first_last = " ".join(name.split(" ", 1)[::-1])
-
-        # temporary fix for split
-        if name == "CABRERA BELLO RAFA":
-            first_last = "RAFA CABRERA BELLO"
-        if name == "VAN ROOYEN ERIK":
-            first_last = "ERIK VAN ROOYEN"
-
-        # i don't think there's a way around this
-        if first_last == "MICHAEL LORENZO-VERA":
-            first_last = "MIKE LORENZOVERA"
-        if first_last == "DIMITRIOS PAPADATOS":
-            first_last = "DIMI PAPADATOS"
-
-        if "-" in first_last:
-            first_last = first_last.replace("-", "")
-
-        # add to dict
-        player_dict[first_last] = {
-            "place": place,
-            "total_score": total_score,
-            "thru_hole": thru_hole,
-            "today_score": today_score,
-            "make_cut_perc": make_cut_perc,
-        }
+        # add player data to dict
+        player_dict[name] = {}
+        for col in columns.keys():
+            player_dict[name][col] = row.find(id=columns[col]).text
 
     return player_dict
+
+
+def massage_name(name):
+    correct_names = {
+        "CABRERA BELLO RAFA": "RAFA CABRERA BELLO",
+        "VAN ROOYEN ERIK": "ERIK VAN ROOYEN",
+        "LORENZO-VERA MICHAEL": "MIKE LORENZOVERA",
+        "PAPADATOS DIMITRIOS": "DIMI PAPADATOS",
+    }
+
+    if name in correct_names:
+        return correct_names[name]
+
+    name = name.replace("-", "")
+
+    return " ".join(name.split(" ", 1)[::-1])
 
 
 def get_dg_ranks(players, dict_players):
@@ -119,4 +116,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
