@@ -67,6 +67,25 @@ class DFSsheet(object):
         )
         print("{0} cells updated.".format(result.get("updatedCells")))
 
+    def write_columns(self, start_col, end_col, values):
+        """Write a set of values to columns in a spreadsheet."""
+        # set range based on column e.g. PGAMain!I2:I
+        range = f"{self.sport}!{start_col}2:{end_col}"
+        body = {"values": values}
+        value_input_option = "USER_ENTERED"
+        result = (
+            self.service.spreadsheets()
+            .values()
+            .update(
+                spreadsheetId=self.SPREADSHEET_ID,
+                range=range,
+                valueInputOption=value_input_option,
+                body=body,
+            )
+            .execute()
+        )
+        print("{0} cells updated.".format(result.get("updatedCells")))
+
     def find_sheet_id(self, title):
         sheet_metadata = (
             self.service.spreadsheets().get(spreadsheetId=self.SPREADSHEET_ID).execute()
