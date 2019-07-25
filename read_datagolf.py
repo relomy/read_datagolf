@@ -1,6 +1,8 @@
+from os import getenv
+
 import selenium.webdriver.chrome.service as chrome_service
-from bs4 import BeautifulSoup
 from selenium import webdriver
+from bs4 import BeautifulSoup
 
 from DFSsheet import DFSsheet
 
@@ -8,7 +10,11 @@ from DFSsheet import DFSsheet
 def get_datagolf_html():
     url = "https://datagolf.ca/live-predictive-model"
     # bin_chromedriver = "E:\\Programs\\chromedrive_chrome75\\chromedriver.exe"
-    bin_chromedriver = r"C:\Users\alewando\Documents\chromedriver\chromedriver.exe"
+    # bin_chromedriver = r"C:\Users\alewando\Documents\chromedriver\chromedriver.exe"
+    bin_chromedriver = getenv("CHROMEDRIVER")
+
+    if not getenv("CHROMEDRIVER"):
+        raise ("Could not find CHROMEDRIVER in environment")
 
     # start headless webdriver
     service = chrome_service.Service(bin_chromedriver)
@@ -26,7 +32,7 @@ def get_datagolf_html():
     return driver.page_source
 
 
-def build_datagolf_players_dict(html, correct_names={}):
+def build_datagolf_players_dict(html, correct_names=None):
     player_dict = {}
 
     # find our table in the html
@@ -57,8 +63,8 @@ def build_datagolf_players_dict(html, correct_names={}):
 
         # add player data to dict
         player_dict[first_last] = {}
-        for col in columns.keys():
-            player_dict[first_last][col] = row.find(id=columns[col]).text
+        for key in columns:
+            player_dict[first_last][key] = row.find(id=columns[key]).text
 
     return player_dict
 
@@ -90,7 +96,7 @@ def get_dg_ranks(players, dict_players):
 
 
 def main():
-    # html = get_datagolf_html()
+    html = get_datagolf_html()
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
         html = fp.read()

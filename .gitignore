@@ -3,6 +3,7 @@
 token.json
 Pipfile.lock
 *.html
+.remote-sync.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
