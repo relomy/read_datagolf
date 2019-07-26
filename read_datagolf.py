@@ -1,16 +1,17 @@
+"""Read from https://datagolf.ca and upload results to DFS spreadsheet."""
+
 from os import getenv
 
 import selenium.webdriver.chrome.service as chrome_service
-from selenium import webdriver
 from bs4 import BeautifulSoup
+from selenium import webdriver
 
 from DFSsheet import DFSsheet
 
 
 def get_datagolf_html():
+    """Use Chromedriver to get website's JS-generated HTML and write to file."""
     url = "https://datagolf.ca/live-predictive-model"
-    # bin_chromedriver = "E:\\Programs\\chromedrive_chrome75\\chromedriver.exe"
-    # bin_chromedriver = r"C:\Users\alewando\Documents\chromedriver\chromedriver.exe"
     bin_chromedriver = getenv("CHROMEDRIVER")
 
     if not getenv("CHROMEDRIVER"):
@@ -33,6 +34,7 @@ def get_datagolf_html():
 
 
 def build_datagolf_players_dict(html, correct_names=None):
+    """Parse datagolf's HTML and add stats to dictionary."""
     player_dict = {}
 
     # find our table in the html
@@ -70,7 +72,7 @@ def build_datagolf_players_dict(html, correct_names=None):
 
 
 def get_dg_ranks(players, dict_players):
-
+    """Compare players from the DFS sheet with datagolf stats dictionary."""
     if not players:
         raise ("No data found.")
 
@@ -96,6 +98,7 @@ def get_dg_ranks(players, dict_players):
 
 
 def main():
+    """Proceed."""
     html = get_datagolf_html()
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
