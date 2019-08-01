@@ -4,7 +4,6 @@ token.json
 Pipfile.lock
 *.html
 .remote-sync.json
-.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

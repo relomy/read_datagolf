@@ -1,4 +1,4 @@
-"""Read from https://datagolf.ca and upload results to DFS spreadsheet."""
+"""Read from https://datagolf.ca/live-predictive-model and upload results to DFS spreadsheet."""
 
 from os import getenv
 
@@ -97,12 +97,33 @@ def get_dg_ranks(players, dict_players):
     return values
 
 
+def build_cutline_probs(html):
+    """Parse datagolf's HTML and return cutline probabilities."""
+    values = []
+    # find our div in the html
+    soup = BeautifulSoup(html, "html.parser")
+    sweat_div = soup.find("div", {"class": "cut-sweat"})
+
+    # loop through the cut-cols
+    datacols = sweat_div.find_all("div", {"class": "cut-col"})
+
+    for col in datacols:
+        cut_value = col.find("div", {"class": "cut-value"}).text
+        cut_percent = col.find("div", {"class": "cut-percent"}).text
+
+        values.append([cut_value, cut_percent])
+
+    return values
+    # return cutline_dict
+
+
 def main():
     """Proceed."""
-    html = get_datagolf_html()
+    # html = get_datagolf_html()
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
         html = fp.read()
+        dict_cutline = build_cutline_probs(html)
 
         # parse datagolf html into a dict of players
         correct_names = {
@@ -110,6 +131,9 @@ def main():
             "VAN ROOYEN ERIK": "ERIK VAN ROOYEN",
             "LORENZO-VERA MICHAEL": "MIKE LORENZOVERA",
             "PAPADATOS DIMITRIOS": "DIMI PAPADATOS",
+            "VARNER III HAROLD": "HAROLD VARNER III",
+            "HOWELL III CHARLES": "CHARLES HOWELL III",
+            "POTTER JR TED": "TED POTTER JR.",
         }
         dict_players = build_datagolf_players_dict(html, correct_names)
 
@@ -120,11 +144,13 @@ def main():
         # get players from DFS sheet
         sheet_players = sheet.get_players()
 
-        # look up players from sheet in datagolf dictionary
+        # look up players from sheet in dg dict and write to sheet
         dg_ranks = get_dg_ranks(sheet_players, dict_players)
-
-        # write datagolf ranks to mc
         sheet.write_columns("F", "I", dg_ranks)
+
+        # write datagolf probabilities to K/L
+        dg_probs = build_cutline_probs(html)
+        sheet.write_columns("L", "M", dg_probs, start_row=4)
 
 
 if __name__ == "__main__":

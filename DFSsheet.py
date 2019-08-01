@@ -67,10 +67,10 @@ class DFSsheet(object):
         )
         print("{0} cells updated.".format(result.get("updatedCells")))
 
-    def write_columns(self, start_col, end_col, values):
+    def write_columns(self, start_col, end_col, values, start_row=2):
         """Write a set of values to columns in a spreadsheet."""
         # set range based on column e.g. PGAMain!I2:I
-        range = f"{self.sport}!{start_col}2:{end_col}"
+        range = f"{self.sport}!{start_col}{start_row}:{end_col}"
         body = {"values": values}
         value_input_option = "USER_ENTERED"
         result = (
