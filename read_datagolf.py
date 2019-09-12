@@ -9,7 +9,7 @@ from selenium import webdriver
 from DFSsheet import DFSsheet
 
 
-def get_datagolf_html():
+def get_datagolf_html(save_to_file=False):
     """Use Chromedriver to get website's JS-generated HTML and write to file."""
     url = "https://datagolf.ca/live-predictive-model"
     bin_chromedriver = getenv("CHROMEDRIVER")
@@ -28,7 +28,8 @@ def get_datagolf_html():
     driver.get(url)
 
     # print html for debugging
-    print(driver.page_source, file=open("content.html", "w", encoding="utf-8"))
+    if save_to_file:
+        print(driver.page_source, file=open("content.html", "w", encoding="utf-8"))
 
     return driver.page_source
 
@@ -54,19 +55,39 @@ def build_datagolf_players_dict(html, correct_names=None):
         "perc_make_cut": "col_text5",
     }
     for row in datarows:
-        name = row.find(id=columns["name"]).text
+        # find name row
+        name_row = row.find(id=columns["name"])
 
+        # pull first/last name from classes within name_row
+        first_name = name_row.find(class_="name-first-bg").text.strip()
+        full_name = name_row.find(class_="name-last-bg").text
+
+        # pull last name from full name by removing first name
+        last_name = full_name.replace(first_name, "").strip()
+
+        # combine first and last name
+        name = f"{first_name} {last_name}"
+
+        # # fix name if it needs it
+        # if name in correct_names:
+        #     first_last = correct_names[name]
+        # else:
+        #     name = name.replace("-", "")
+        #     first_last = " ".join(name.split(" ", 1)[::-1])
+
+        # # add player data to dict
+        # player_dict[first_last] = {}
+        # for key in columns:
+        #     player_dict[first_last][key] = row.find(id=columns[key]).text
         # fix name if it needs it
         if name in correct_names:
-            first_last = correct_names[name]
-        else:
             name = name.replace("-", "")
-            first_last = " ".join(name.split(" ", 1)[::-1])
+            name = correct_names[name]
 
         # add player data to dict
-        player_dict[first_last] = {}
+        player_dict[name] = {}
         for key in columns:
-            player_dict[first_last][key] = row.find(id=columns[key]).text
+            player_dict[name][key] = row.find(id=columns[key]).text
 
     return player_dict
 
@@ -74,7 +95,7 @@ def build_datagolf_players_dict(html, correct_names=None):
 def get_dg_ranks(players, dict_players):
     """Compare players from the DFS sheet with datagolf stats dictionary."""
     if not players:
-        raise ("No data found.")
+        raise Exception("No data found.")
 
     values = []
     for player in players:
@@ -111,7 +132,7 @@ def build_cutline_probs(html):
         cut_value = col.find("div", {"class": "cut-value"}).text
         cut_percent = col.find("div", {"class": "cut-percent"}).text
 
-        values.append([cut_value, cut_percent])
+        values.append([cut_value, None, cut_percent])
 
     return values
     # return cutline_dict
@@ -119,21 +140,15 @@ def build_cutline_probs(html):
 
 def main():
     """Proceed."""
-    # html = get_datagolf_html()
+    html = get_datagolf_html(save_to_file=True)
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
         html = fp.read()
-        dict_cutline = build_cutline_probs(html)
 
         # parse datagolf html into a dict of players
         correct_names = {
-            "CABRERA BELLO RAFA": "RAFA CABRERA BELLO",
-            "VAN ROOYEN ERIK": "ERIK VAN ROOYEN",
-            "LORENZO-VERA MICHAEL": "MIKE LORENZOVERA",
-            "PAPADATOS DIMITRIOS": "DIMI PAPADATOS",
-            "VARNER III HAROLD": "HAROLD VARNER III",
-            "HOWELL III CHARLES": "CHARLES HOWELL III",
-            "POTTER JR TED": "TED POTTER JR.",
+            "TED POTTER JR": "TED POTTER JR.",
+            "BILLY HURLEY III": "BILLY HURLEY",
         }
         dict_players = build_datagolf_players_dict(html, correct_names)
 
@@ -146,11 +161,13 @@ def main():
 
         # look up players from sheet in dg dict and write to sheet
         dg_ranks = get_dg_ranks(sheet_players, dict_players)
-        sheet.write_columns("F", "I", dg_ranks)
+        if dg_ranks:
+            sheet.write_columns("F", "I", dg_ranks)
 
         # write datagolf probabilities to K/L
         dg_probs = build_cutline_probs(html)
-        sheet.write_columns("L", "M", dg_probs, start_row=4)
+        if dg_probs:
+            sheet.write_columns("L", "N", dg_probs, start_row=4)
 
 
 if __name__ == "__main__":
