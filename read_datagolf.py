@@ -1,6 +1,7 @@
 """Read from https://datagolf.ca/live-predictive-model and upload results to DFS spreadsheet."""
 
 from os import getenv
+import re
 
 import selenium.webdriver.chrome.service as chrome_service
 from bs4 import BeautifulSoup
@@ -67,6 +68,9 @@ def build_datagolf_players_dict(html, correct_names=None):
 
         # combine first and last name
         name = f"{first_name} {last_name}"
+
+        # remove course from name, if there is one
+        name = re.sub(r" *\(\w+\) *", "", name)
 
         # # fix name if it needs it
         # if name in correct_names:
