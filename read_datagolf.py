@@ -7,7 +7,7 @@ import selenium.webdriver.chrome.service as chrome_service
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-from DFSsheet import DFSsheet
+from dfssheet import DFSSheet
 
 
 def get_datagolf_html(save_to_file=False):
@@ -70,7 +70,7 @@ def build_datagolf_players_dict(html, correct_names=None):
         name = f"{first_name} {last_name}"
 
         # remove course from name, if there is one
-        name = re.sub(r" *\(\w+\) *", "", name)
+        name = re.sub(r"\s*\(\w+\)\s*", "", name)
 
         # # fix name if it needs it
         # if name in correct_names:
@@ -144,7 +144,7 @@ def build_cutline_probs(html):
 
 def main():
     """Proceed."""
-    html = get_datagolf_html(save_to_file=True)
+    # html = get_datagolf_html(save_to_file=True)
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
         html = fp.read()
@@ -157,8 +157,9 @@ def main():
         dict_players = build_datagolf_players_dict(html, correct_names)
 
         # create DFSsheet object
-        sport = "PGAMain"
-        sheet = DFSsheet(sport)
+        # sport = "PGAMain"
+        sport = "GOLF"
+        sheet = DFSSheet(sport)
 
         # get players from DFS sheet
         sheet_players = sheet.get_players()
@@ -167,6 +168,9 @@ def main():
         dg_ranks = get_dg_ranks(sheet_players, dict_players)
         if dg_ranks:
             sheet.write_columns("F", "I", dg_ranks)
+
+        # get players from DFS sheet
+        lineup_players = sheet.get_players()
 
         # write datagolf probabilities to K/L
         dg_probs = build_cutline_probs(html)
