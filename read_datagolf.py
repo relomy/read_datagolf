@@ -133,7 +133,7 @@ def add_dg_values_to_lineups(lineup_values, dict_players):
             player = row[0].upper().replace("-", "")
             if player in dict_players:
                 # add him to
-                print(f"found player {row[0]} in row [0] in dict_players!")
+                # print(f"found player {row[0]} in row [0] in dict_players!")
 
                 if len(row) > 5:
                     # add dg data (place/total score) to index 5 and 6
@@ -152,15 +152,21 @@ def add_dg_values_to_lineups(lineup_values, dict_players):
             if len(row) > 8:
                 player = row[8].upper().replace("-", "")
                 if player in dict_players:
-                    print(f"found player {row[8]} in row [9] in dict_players!")
+                    # print(f"found player {row[8]} in row [9] in dict_players!")
 
-                    # extend list to include place/total score
-                    row.extend(
-                        [
-                            dict_players[player]["place"],
-                            dict_players[player]["total_score"],
-                        ]
-                    )
+                    if len(row) < 14:
+                        # extend list to include place/total score
+                        row.extend(
+                            [
+                                dict_players[player]["place"],
+                                dict_players[player]["total_score"],
+                            ]
+                        )
+                    else:
+                        # add dg data (place/total score) to index 5 and 6
+                        row[13] = dict_players[player]["place"]
+                        row[14] = dict_players[player]["total_score"]
+
         new_lineup_values.append(row)
     return new_lineup_values
 
