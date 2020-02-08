@@ -1,11 +1,12 @@
 """Read from https://datagolf.ca/live-predictive-model and upload results to DFS spreadsheet."""
 
-from os import getenv
 import re
+from os import getenv
 
 import selenium.webdriver.chrome.service as chrome_service
-from bs4 import BeautifulSoup
 from selenium import webdriver
+from bs4 import BeautifulSoup
+
 
 from dfssheet import DFSSheet
 
@@ -16,7 +17,7 @@ def get_datagolf_html(save_to_file=False):
     bin_chromedriver = getenv("CHROMEDRIVER")
 
     if not getenv("CHROMEDRIVER"):
-        raise ("Could not find CHROMEDRIVER in environment")
+        raise "Could not find CHROMEDRIVER in environment"
 
     # start headless webdriver
     service = chrome_service.Service(bin_chromedriver)
@@ -122,6 +123,48 @@ def get_dg_ranks(players, dict_players):
     return values
 
 
+def add_dg_values_to_lineups(lineup_values, dict_players):
+    new_lineup_values = []
+    # loop through each row (two columns) in the lineup values
+    for row in lineup_values:
+        # loop through each real with data
+        if len(row) > 1:
+            # check for player in 0th cell of row
+            player = row[0].upper().replace("-", "")
+            if player in dict_players:
+                # add him to
+                print(f"found player {row[0]} in row [0] in dict_players!")
+
+                if len(row) > 5:
+                    # add dg data (place/total score) to index 5 and 6
+                    row[5] = dict_players[player]["place"]
+                    row[6] = dict_players[player]["total_score"]
+                else:
+                    # extend list to include place/total score
+                    row.extend(
+                        [
+                            dict_players[player]["place"],
+                            dict_players[player]["total_score"],
+                        ]
+                    )
+
+            # also check the 8th cell (2nd column)
+            if len(row) > 8:
+                player = row[8].upper().replace("-", "")
+                if player in dict_players:
+                    print(f"found player {row[8]} in row [9] in dict_players!")
+
+                    # extend list to include place/total score
+                    row.extend(
+                        [
+                            dict_players[player]["place"],
+                            dict_players[player]["total_score"],
+                        ]
+                    )
+        new_lineup_values.append(row)
+    return new_lineup_values
+
+
 def build_cutline_probs(html):
     """Parse datagolf's HTML and return cutline probabilities."""
     values = []
@@ -144,7 +187,7 @@ def build_cutline_probs(html):
 
 def main():
     """Proceed."""
-    # html = get_datagolf_html(save_to_file=True)
+    html = get_datagolf_html(save_to_file=True)
 
     with open("content.html", mode="r", encoding="utf-8") as fp:
         html = fp.read()
@@ -169,8 +212,12 @@ def main():
         if dg_ranks:
             sheet.write_columns("F", "I", dg_ranks)
 
-        # get players from DFS sheet
-        lineup_players = sheet.get_players()
+        # get lineup_values from DFS sheet
+        lineup_values = sheet.get_lineup_values()
+        new_lineup_valus = add_dg_values_to_lineups(lineup_values, dict_players)
+        if new_lineup_valus:
+            sheet.write_lineup_range(new_lineup_valus)
+            # sheet.write_columns("L", "AA", new_lineup_valus, start_row=8)
 
         # write datagolf probabilities to K/L
         dg_probs = build_cutline_probs(html)
