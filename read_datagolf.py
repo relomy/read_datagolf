@@ -114,6 +114,7 @@ def get_dg_ranks(players, dict_players):
                     dict_players[player]["total_score"],
                     dict_players[player]["thru_hole"],
                     dict_players[player]["today_score"],
+                    dict_players[player]["perc_make_cut"],
                 ]
             )
         else:
@@ -202,6 +203,7 @@ def main():
         correct_names = {
             "TED POTTER JR": "TED POTTER JR.",
             "BILLY HURLEY III": "BILLY HURLEY",
+            "KYOUNG-HOON LEE": "KYOUNGHOON LEE",
         }
         dict_players = build_datagolf_players_dict(html, correct_names)
 
@@ -216,7 +218,7 @@ def main():
         # look up players from sheet in dg dict and write to sheet
         dg_ranks = get_dg_ranks(sheet_players, dict_players)
         if dg_ranks:
-            sheet.write_columns("F", "I", dg_ranks)
+            sheet.write_columns("F", "J", dg_ranks)
 
         # get lineup_values from DFS sheet
         lineup_values = sheet.get_lineup_values()
