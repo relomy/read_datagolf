@@ -203,7 +203,7 @@ def main():
         correct_names = {
             "TED POTTER JR": "TED POTTER JR.",
             "BILLY HURLEY III": "BILLY HURLEY",
-            "KYOUNG-HOON LEE": "KYOUNGHOON LEE",
+            "KYOUNGHOON LEE": "KYOUNG-HOON LEE",
         }
         dict_players = build_datagolf_players_dict(html, correct_names)
 
