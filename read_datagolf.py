@@ -86,7 +86,7 @@ def build_datagolf_players_dict(html, correct_names=None):
         #     player_dict[first_last][key] = row.find(id=columns[key]).text
         # fix name if it needs it
         if name in correct_names:
-            name = name.replace("-", "")
+            # name = name.replace("-", "")
             name = correct_names[name]
 
         # add player data to dict
@@ -105,7 +105,8 @@ def get_dg_ranks(players, dict_players):
     values = []
     for player in players:
         # convert to uppercase and remove dash if there is one
-        player = player.upper().replace("-", "")
+        # player = player.upper().replace("-", "")
+        player = player.upper()
 
         if player in dict_players:
             values.append(
