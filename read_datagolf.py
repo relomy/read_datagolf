@@ -61,8 +61,8 @@ def build_datagolf_players_dict(html, correct_names=None):
         name_row = row.find(id=columns["name"])
 
         # pull first/last name from classes within name_row
-        first_name = name_row.find(class_="name-first-bg").text.strip()
-        full_name = name_row.find(class_="name-last-bg").text
+        first_name = name_row.find(class_="name-first").text.strip()
+        full_name = name_row.find(class_="name-span").text
 
         # pull last name from full name by removing first name
         last_name = full_name.replace(first_name, "").strip()
