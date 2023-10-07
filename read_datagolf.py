@@ -7,7 +7,7 @@ import selenium.webdriver.chrome.service as chrome_service
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-from DFSsheet import DFSsheet
+from dfssheet import DFSSheet
 
 
 def get_datagolf_html(save_to_file=False):
@@ -23,9 +23,7 @@ def get_datagolf_html(save_to_file=False):
     service.start()
     options = webdriver.ChromeOptions()
     options.headless = True
-    driver = webdriver.Remote(
-        service.service_url, desired_capabilities=options.to_capabilities()
-    )
+    driver = webdriver.Remote(service.service_url, options=options)
     driver.get(url)
 
     # print html for debugging
@@ -56,36 +54,16 @@ def build_datagolf_players_dict(html, correct_names=None):
         "perc_make_cut": "col_text5",
     }
     for row in datarows:
-        # find name row
-        name_row = row.find(id=columns["name"])
-
-        # pull first/last name from classes within name_row
-        first_name = name_row.find(class_="name-first-bg").text.strip()
-        full_name = name_row.find(class_="name-last-bg").text
-
-        # pull last name from full name by removing first name
-        last_name = full_name.replace(first_name, "").strip()
+        csvname = row.attrs["name"]
+        last_name, first_name = csvname.split(",")
 
         # combine first and last name
-        name = f"{first_name} {last_name}"
+        name = f"{first_name.strip().upper()} {last_name.strip().upper()}"
 
         # remove course from name, if there is one
         name = re.sub(r" *\(\w+\) *", "", name)
-
-        # # fix name if it needs it
-        # if name in correct_names:
-        #     first_last = correct_names[name]
-        # else:
-        #     name = name.replace("-", "")
-        #     first_last = " ".join(name.split(" ", 1)[::-1])
-
-        # # add player data to dict
-        # player_dict[first_last] = {}
-        # for key in columns:
-        #     player_dict[first_last][key] = row.find(id=columns[key]).text
-        # fix name if it needs it
+        name = name.replace("-", "")
         if name in correct_names:
-            name = name.replace("-", "")
             name = correct_names[name]
 
         # add player data to dict
@@ -133,8 +111,9 @@ def build_cutline_probs(html):
     datacols = sweat_div.find_all("div", {"class": "cut-col"})
 
     for col in datacols:
-        cut_value = col.find("div", {"class": "cut-value"}).text
-        cut_percent = col.find("div", {"class": "cut-percent"}).text
+        cut_value_div = col.find("div", {"class": "cut-value"})
+        cut_value = cut_value_div.find("span").text
+        cut_percent = col.find("span", {"class": "cut-percent"}).text
 
         values.append([cut_value, None, cut_percent])
 
@@ -153,12 +132,13 @@ def main():
         correct_names = {
             "TED POTTER JR": "TED POTTER JR.",
             "BILLY HURLEY III": "BILLY HURLEY",
+            "SAMUEL STEVENS": "SAM STEVENS",
         }
         dict_players = build_datagolf_players_dict(html, correct_names)
 
         # create DFSsheet object
-        sport = "PGAMain"
-        sheet = DFSsheet(sport)
+        sport = "GOLF"
+        sheet = DFSSheet(sport)
 
         # get players from DFS sheet
         sheet_players = sheet.get_players()
