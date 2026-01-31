@@ -50,6 +50,10 @@ def _request_jsonp(
     sess = session or requests.Session()
     for attempt in range(retries):
         try:
+            if attempt == 0:
+                logger.info("Requesting %s", url)
+            else:
+                logger.warning("Retrying %s (attempt %d)", url, attempt + 1)
             resp = sess.get(url, params=params, timeout=timeout)
             resp.raise_for_status()
             return _parse_json_or_jsonp(resp.text)

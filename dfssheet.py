@@ -5,7 +5,7 @@ from os import path
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-logging.config.fileConfig("logging.ini")
+logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
 
 
 class Sheet:

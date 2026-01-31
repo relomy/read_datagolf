@@ -1,10 +1,17 @@
 """Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
+import json
+import logging
+import logging.config
+from os import getenv
+from time import strftime
+
 from jellyfish import jaro_winkler_similarity
 
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfssheet import DFSSheet
 
+logger = logging.getLogger(__name__)
 
 def get_dg_ranks(players, dict_players):
     """Compare players from the DFS sheet with datagolf stats dictionary."""
@@ -35,7 +42,12 @@ def get_dg_ranks(players, dict_players):
             suggestions.sort(reverse=True)
             best_score, best_candidate = suggestions[0] if suggestions else (0.0, None)
             if best_candidate and best_score > 0.85:
-                print(f"{player}: auto-matched to {best_candidate} ({best_score:.3f})")
+                logger.info(
+                    "%s: auto-matched to %s (%.3f)",
+                    player,
+                    best_candidate,
+                    best_score,
+                )
                 values.append(
                     [
                         dict_players[best_candidate]["place"],
@@ -59,33 +71,47 @@ def get_dg_ranks(players, dict_players):
 
 def main():
     """Proceed."""
+    logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     correct_names = {
         "TED POTTER JR": "TED POTTER JR.",
         "BILLY HURLEY III": "BILLY HURLEY",
         "SAMUEL STEVENS": "SAM STEVENS",
         "MATTI SCHMID": "MATTIAS SCHMID",
+        "S.H. KIM": "SEONGHYEON KIM",
     }
 
     # Fetch full data once; includes place/score/thru/today/cut for all players.
+    logger.info("Fetching full live-model data for PGA")
     full_data = fetch_main_data(mode="full", tour="pga")
+    if getenv("DG_SAVE_API", "").lower() in {"1", "true", "yes"}:
+        ts = strftime("%Y%m%d_%H%M%S")
+        path = f"datagolf_full_{ts}.json"
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump(full_data, fp, ensure_ascii=False)
+        logger.info("Saved API response to %s", path)
     dict_players = build_players_dict(full_data, full_data, correct_names)
+    logger.info("Loaded %d players from API", len(dict_players))
 
     # create DFSsheet object
     sport = "GOLF"
     sheet = DFSSheet(sport)
+    logger.info("Opened DFS sheet for sport=%s", sport)
 
     # get players from DFS sheet
     sheet_players = sheet.get_players()
+    logger.info("Loaded %d players from DFS sheet", len(sheet_players))
 
     # look up players from sheet in dg dict and write to sheet
-    print(f"getting dg ranks for {len(dict_players)} players")
+    logger.info("Getting DG ranks for %d players", len(dict_players))
     dg_ranks = get_dg_ranks(sheet_players, dict_players)
     if dg_ranks:
+        logger.info("Writing %d player rows to sheet", len(dg_ranks))
         sheet.write_columns("F", "J", dg_ranks)
 
     # write datagolf probabilities to K/L
     dg_probs = build_cutline_probs(full_data)
     if dg_probs:
+        logger.info("Writing %d cutline rows to sheet", len(dg_probs))
         sheet.write_columns("L", "N", dg_probs, start_row=4)
 
 
