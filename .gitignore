@@ -1,6 +1,6 @@
 # project-specific files
 *.vscode/
-token.json
+client_secret.json
 Pipfile.lock
 *.html
 .remote-sync.json

@@ -1,8 +1,9 @@
 """Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
+from jellyfish import jaro_winkler_similarity
+
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfssheet import DFSSheet
-from jellyfish import jaro_winkler_similarity
 
 
 def get_dg_ranks(players, dict_players):
