@@ -1,99 +1,8 @@
-"""Read from https://datagolf.ca/live-predictive-model and upload results to DFS spreadsheet."""
+"""Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
-from os import getenv
-import re
-
-import selenium.webdriver.chrome.service as chrome_service
-from bs4 import BeautifulSoup
-from selenium import webdriver
-
-from DFSsheet import DFSsheet
-
-
-def get_datagolf_html(save_to_file=False):
-    """Use Chromedriver to get website's JS-generated HTML and write to file."""
-    url = "https://datagolf.ca/live-predictive-model"
-    bin_chromedriver = getenv("CHROMEDRIVER")
-
-    if not getenv("CHROMEDRIVER"):
-        raise ("Could not find CHROMEDRIVER in environment")
-
-    # start headless webdriver
-    service = chrome_service.Service(bin_chromedriver)
-    service.start()
-    options = webdriver.ChromeOptions()
-    options.headless = True
-    driver = webdriver.Remote(
-        service.service_url, desired_capabilities=options.to_capabilities()
-    )
-    driver.get(url)
-
-    # print html for debugging
-    if save_to_file:
-        print(driver.page_source, file=open("content.html", "w", encoding="utf-8"))
-
-    return driver.page_source
-
-
-def build_datagolf_players_dict(html, correct_names=None):
-    """Parse datagolf's HTML and add stats to dictionary."""
-    player_dict = {}
-
-    # find our table in the html
-    soup = BeautifulSoup(html, "html.parser")
-    table_div = soup.find("div", {"class": "table"})
-
-    # loop through the datarows
-    datarows = table_div.find_all("div", {"class": "datarow"})
-
-    # the easiest way seemed to use the id column
-    columns = {
-        "place": "col_text0",
-        "name": "col_text1",
-        "total_score": "col_text2",
-        "thru_hole": "col_text3",
-        "today_score": "col_text4",
-        "perc_make_cut": "col_text5",
-    }
-    for row in datarows:
-        # find name row
-        name_row = row.find(id=columns["name"])
-
-        # pull first/last name from classes within name_row
-        first_name = name_row.find(class_="name-first-bg").text.strip()
-        full_name = name_row.find(class_="name-last-bg").text
-
-        # pull last name from full name by removing first name
-        last_name = full_name.replace(first_name, "").strip()
-
-        # combine first and last name
-        name = f"{first_name} {last_name}"
-
-        # remove course from name, if there is one
-        name = re.sub(r" *\(\w+\) *", "", name)
-
-        # # fix name if it needs it
-        # if name in correct_names:
-        #     first_last = correct_names[name]
-        # else:
-        #     name = name.replace("-", "")
-        #     first_last = " ".join(name.split(" ", 1)[::-1])
-
-        # # add player data to dict
-        # player_dict[first_last] = {}
-        # for key in columns:
-        #     player_dict[first_last][key] = row.find(id=columns[key]).text
-        # fix name if it needs it
-        if name in correct_names:
-            name = name.replace("-", "")
-            name = correct_names[name]
-
-        # add player data to dict
-        player_dict[name] = {}
-        for key in columns:
-            player_dict[name][key] = row.find(id=columns[key]).text
-
-    return player_dict
+from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
+from dfssheet import DFSSheet
+from jellyfish import jaro_winkler_similarity
 
 
 def get_dg_ranks(players, dict_players):
@@ -102,6 +11,7 @@ def get_dg_ranks(players, dict_players):
         raise Exception("No data found.")
 
     values = []
+    normalized_keys = {k: k for k in dict_players}
     for player in players:
         # convert to uppercase and remove dash if there is one
         player = player.upper().replace("-", "")
@@ -113,65 +23,69 @@ def get_dg_ranks(players, dict_players):
                     dict_players[player]["total_score"],
                     dict_players[player]["thru_hole"],
                     dict_players[player]["today_score"],
+                    dict_players[player]["perc_make_cut"],
                 ]
             )
         else:
-            values.append(["???", "", "", ""])
-            print(f"{player}: ???")
+            suggestions = []
+            for candidate in normalized_keys:
+                score = jaro_winkler_similarity(player, candidate)
+                suggestions.append((score, candidate))
+            suggestions.sort(reverse=True)
+            best_score, best_candidate = suggestions[0] if suggestions else (0.0, None)
+            if best_candidate and best_score > 0.85:
+                print(f"{player}: auto-matched to {best_candidate} ({best_score:.3f})")
+                values.append(
+                    [
+                        dict_players[best_candidate]["place"],
+                        dict_players[best_candidate]["total_score"],
+                        dict_players[best_candidate]["thru_hole"],
+                        dict_players[best_candidate]["today_score"],
+                        dict_players[best_candidate]["perc_make_cut"],
+                    ]
+                )
+            else:
+                values.append(["???", "", "", "", ""])
+                print(f"{player}: ???")
+                close = [(c, s) for s, c in suggestions[:5] if s >= 0.85]
+                if close:
+                    print("  Suggestions:")
+                    for name, score in close:
+                        print(f"   - {name}: {score:.3f}")
 
     return values
-
-
-def build_cutline_probs(html):
-    """Parse datagolf's HTML and return cutline probabilities."""
-    values = []
-    # find our div in the html
-    soup = BeautifulSoup(html, "html.parser")
-    sweat_div = soup.find("div", {"class": "cut-sweat"})
-
-    # loop through the cut-cols
-    datacols = sweat_div.find_all("div", {"class": "cut-col"})
-
-    for col in datacols:
-        cut_value = col.find("div", {"class": "cut-value"}).text
-        cut_percent = col.find("div", {"class": "cut-percent"}).text
-
-        values.append([cut_value, None, cut_percent])
-
-    return values
-    # return cutline_dict
 
 
 def main():
     """Proceed."""
-    html = get_datagolf_html(save_to_file=True)
+    correct_names = {
+        "TED POTTER JR": "TED POTTER JR.",
+        "BILLY HURLEY III": "BILLY HURLEY",
+        "SAMUEL STEVENS": "SAM STEVENS",
+        "MATTI SCHMID": "MATTIAS SCHMID",
+    }
 
-    with open("content.html", mode="r", encoding="utf-8") as fp:
-        html = fp.read()
+    # Fetch full data once; includes place/score/thru/today/cut for all players.
+    full_data = fetch_main_data(mode="full", tour="pga")
+    dict_players = build_players_dict(full_data, full_data, correct_names)
 
-        # parse datagolf html into a dict of players
-        correct_names = {
-            "TED POTTER JR": "TED POTTER JR.",
-            "BILLY HURLEY III": "BILLY HURLEY",
-        }
-        dict_players = build_datagolf_players_dict(html, correct_names)
+    # create DFSsheet object
+    sport = "GOLF"
+    sheet = DFSSheet(sport)
 
-        # create DFSsheet object
-        sport = "PGAMain"
-        sheet = DFSsheet(sport)
+    # get players from DFS sheet
+    sheet_players = sheet.get_players()
 
-        # get players from DFS sheet
-        sheet_players = sheet.get_players()
+    # look up players from sheet in dg dict and write to sheet
+    print(f"getting dg ranks for {len(dict_players)} players")
+    dg_ranks = get_dg_ranks(sheet_players, dict_players)
+    if dg_ranks:
+        sheet.write_columns("F", "J", dg_ranks)
 
-        # look up players from sheet in dg dict and write to sheet
-        dg_ranks = get_dg_ranks(sheet_players, dict_players)
-        if dg_ranks:
-            sheet.write_columns("F", "I", dg_ranks)
-
-        # write datagolf probabilities to K/L
-        dg_probs = build_cutline_probs(html)
-        if dg_probs:
-            sheet.write_columns("L", "N", dg_probs, start_row=4)
+    # write datagolf probabilities to K/L
+    dg_probs = build_cutline_probs(full_data)
+    if dg_probs:
+        sheet.write_columns("L", "N", dg_probs, start_row=4)
 
 
 if __name__ == "__main__":
