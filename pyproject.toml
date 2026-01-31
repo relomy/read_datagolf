@@ -1,0 +1,21 @@
+[project]
+name = "read-datagolf"
+version = "0.0.0"
+description = "Read DataGolf live model data and upload results to a DFS spreadsheet."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "requests",
+  "beautifulsoup4",
+  "selenium",
+  "google-api-python-client",
+  "oauth2client",
+  "jellyfish",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "pylint",
+  "rope",
+]
