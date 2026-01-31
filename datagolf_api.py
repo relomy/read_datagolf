@@ -174,13 +174,16 @@ def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
     for row in main_data.get("main", []):
         last_first = row.get("name", "")
         display = _last_first_to_display(last_first)
+        thru = row.get("thru", "")
+        if str(thru) == "0" and row.get("teetime"):
+            thru = row.get("teetime")
         rows.append(
             {
                 "display_name": display,
                 "last_first": last_first,
                 "place": row.get("current_pos", ""),
                 "total_score": _format_score(row.get("current_score")),
-                "thru_hole": row.get("thru", ""),
+                "thru_hole": thru,
                 "perc_make_cut": _format_percent(row.get("cut")),
             }
         )
