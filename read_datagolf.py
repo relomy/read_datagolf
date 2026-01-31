@@ -13,6 +13,7 @@ from dfssheet import DFSSheet
 
 logger = logging.getLogger(__name__)
 
+
 def get_dg_ranks(players, dict_players):
     """Compare players from the DFS sheet with datagolf stats dictionary."""
     if not players:

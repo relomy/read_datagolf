@@ -82,7 +82,9 @@ def fetch_player_data(players_last_first: List[str]) -> Dict[str, Any]:
     return _request_jsonp(url, params=params)
 
 
-def extract_players_last_first(main_data: Dict[str, Any], tour: str = "pga") -> List[str]:
+def extract_players_last_first(
+    main_data: Dict[str, Any], tour: str = "pga"
+) -> List[str]:
     """Extract players in 'Last, First' format for get-player-data."""
     if isinstance(main_data, dict):
         if mode_is_mini(main_data, tour):
@@ -94,7 +96,11 @@ def extract_players_last_first(main_data: Dict[str, Any], tour: str = "pga") -> 
                     players.append(f"{last}, {first}")
             return players
         if "main" in main_data:
-            return [row.get("name", "") for row in main_data.get("main", []) if row.get("name")]
+            return [
+                row.get("name", "")
+                for row in main_data.get("main", [])
+                if row.get("name")
+            ]
     return []
 
 
@@ -180,7 +186,7 @@ def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
             if teetime not in (None, "", 0, "0"):
                 thru = teetime
             else:
-                thru = ""
+                thru = "-"
         rows.append(
             {
                 "display_name": display,
