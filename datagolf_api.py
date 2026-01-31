@@ -175,8 +175,12 @@ def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
         last_first = row.get("name", "")
         display = _last_first_to_display(last_first)
         thru = row.get("thru", "")
-        if str(thru) == "0" and row.get("teetime"):
-            thru = row.get("teetime")
+        teetime = row.get("teetime")
+        if str(thru) == "0":
+            if teetime not in (None, "", 0, "0"):
+                thru = teetime
+            else:
+                thru = ""
         rows.append(
             {
                 "display_name": display,
