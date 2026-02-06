@@ -3,11 +3,9 @@
 import logging
 import logging.config
 from datetime import datetime
-from os import path
 from typing import Any, List, Optional, Protocol, Sequence
 
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from dfs_common.sheets import SheetClient, service_account_provider
 
 logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
 
@@ -35,74 +33,41 @@ class Sheet:
     def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         self.logger = logger or logging.getLogger(__name__)
 
-        # authorize class to use sheets API
-        self.service = self.setup_service()
-
         # unique ID for DFS Ownership/Value spreadsheet
         self.spreadsheet_id = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
-
-    def setup_service(self) -> Any:
-        """Set up the Sheets API service using a service account JSON file."""
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        directory = "."
-        secret_file = path.join(directory, "client_secret.json")
-
-        credentials = service_account.Credentials.from_service_account_file(
-            secret_file, scopes=scopes
+        self._client = SheetClient(
+            spreadsheet_id=self.spreadsheet_id,
+            credentials_provider=service_account_provider("client_secret.json"),
+            logger=self.logger,
         )
 
-        return build("sheets", "v4", credentials=credentials, cache_discovery=False)
+    def setup_service(self) -> Any:
+        """Return the configured Sheets API service."""
+        return self._client.service
+
+    @property
+    def service(self) -> Any:
+        return self._client.service
+
+    @service.setter
+    def service(self, value: Any) -> None:
+        self._client._service = value
 
     def find_sheet_id(self, title: str) -> Optional[int]:
         """Find the worksheet ID for a title substring."""
-        sheet_metadata = (
-            self.service.spreadsheets().get(spreadsheetId=self.spreadsheet_id).execute()
-        )
-        sheets = sheet_metadata.get("sheets", "")
-        for sheet in sheets:
-            if title in sheet["properties"]["title"]:
-                # logger.debug("Sheet ID for %s is %s", title, sheet["properties"]["sheetId"])
-                return sheet["properties"]["sheetId"]
-
-        return None
+        return self._client.find_sheet_id(title)
 
     def write_values_to_sheet_range(
         self, values: Sequence[Sequence[Any]], cell_range: str
     ) -> None:
         """Write values to a sheet range using USER_ENTERED input."""
-        body = {"values": values}
-        value_input_option = "USER_ENTERED"
-        result = (
-            self.service.spreadsheets()
-            .values()
-            .update(
-                spreadsheetId=self.spreadsheet_id,
-                range=cell_range,
-                valueInputOption=value_input_option,
-                body=body,
-            )
-            .execute()
-        )
-        self.logger.info(
-            "%s cells updated for [%s].", cell_range, result.get("updatedCells")
+        self._client.write_values(
+            [list(row) for row in values], cell_range, value_input_option="USER_ENTERED"
         )
 
     def clear_sheet_range(self, cell_range: str) -> None:
         """Clear values (not formatting) for a given range."""
-        result = (
-            self.service.spreadsheets()
-            .values()
-            .clear(
-                spreadsheetId=self.spreadsheet_id,
-                range=cell_range,
-                body={},  # must be empty
-            )
-            .execute()
-        )
-        self.logger.info("Range %s cleared.", result.get("clearedRange"))
+        self._client.clear_range(cell_range)
 
     # def get_values_from_self_range(self):
     #     result = (
@@ -115,13 +80,7 @@ class Sheet:
 
     def get_values_from_range(self, cell_range: str) -> List[List[Any]]:
         """Read values from a sheet range."""
-        result = (
-            self.service.spreadsheets()
-            .values()
-            .get(spreadsheetId=self.spreadsheet_id, range=cell_range)
-            .execute()
-        )
-        return result.get("values", [])
+        return self._client.get_values(cell_range)
 
     # def sheet_letter_to_index(self, letter):
     #     """1-indexed"""
