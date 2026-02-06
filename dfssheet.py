@@ -53,9 +53,9 @@ class Sheet:
     def service(self, value: Any) -> None:
         self._client._service = value
 
-    def find_sheet_id(self, title: str) -> Optional[int]:
+    def find_sheet_id(self, title: str, *, partial: bool = False) -> Optional[int]:
         """Find the worksheet ID for a title substring."""
-        return self._client.find_sheet_id(title)
+        return self._client.find_sheet_id(title, partial=partial)
 
     def write_values_to_sheet_range(
         self, values: Sequence[Sequence[Any]], cell_range: str
