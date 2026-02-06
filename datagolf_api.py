@@ -1,3 +1,5 @@
+"""Helpers for reading and normalizing DataGolf live model API responses."""
+
 import json
 import logging
 import re
@@ -46,7 +48,7 @@ def _request_jsonp(
     """Fetch JSONP from url with simple retry/backoff and parse to JSON."""
     if requests is None:
         raise ModuleNotFoundError("requests is required for live API calls")
-    last_exc: Exception | None = None
+    last_exc: Optional[Exception] = None
     sess = session or requests.Session()
     for attempt in range(retries):
         try:
@@ -64,8 +66,20 @@ def _request_jsonp(
     raise last_exc
 
 
-def fetch_main_data(tour: str = "pga", mode: str = "mini") -> dict:
-    """Fetch live model main data. mode can be 'mini' or 'full'."""
+def fetch_main_data(tour: str = "pga", mode: str = "mini") -> Any:
+    """Fetch live model main data.
+
+    Args:
+        tour: DataGolf tour slug used in the URL when mode is not "mini".
+        mode: "mini" hits the mini endpoint; any other value uses the tour
+            endpoint.
+
+    Returns:
+        Parsed JSON payload from the DataGolf live model API.
+
+    TODO(datagolf_api.fetch_main_data): Confirm supported tour values and
+        response schema from the DataGolf API.
+    """
     if mode == "mini":
         url = f"{BASE_URL}/get-main-data/mini"
     else:
@@ -74,7 +88,14 @@ def fetch_main_data(tour: str = "pga", mode: str = "mini") -> dict:
 
 
 def fetch_player_data(players_last_first: List[str]) -> Dict[str, Any]:
-    """Fetch per-player data in a single batch request."""
+    """Fetch per-player data in a single batch request.
+
+    Args:
+        players_last_first: Player names formatted as "Last, First".
+
+    Returns:
+        Parsed JSON payload keyed by player name.
+    """
     if not players_last_first:
         return {}
     url = f"{BASE_URL}/get-player-data"
@@ -85,7 +106,11 @@ def fetch_player_data(players_last_first: List[str]) -> Dict[str, Any]:
 def extract_players_last_first(
     main_data: Dict[str, Any], tour: str = "pga"
 ) -> List[str]:
-    """Extract players in 'Last, First' format for get-player-data."""
+    """Extract players in "Last, First" format for get-player-data.
+
+    Handles the "mini" payload structure (uses `lb` rows under `tour`) and
+    the full payload structure (uses `main` rows with `name` values).
+    """
     if isinstance(main_data, dict):
         if mode_is_mini(main_data, tour):
             players = []
@@ -106,11 +131,16 @@ def extract_players_last_first(
 
 def build_players_dict(
     main_data: Dict[str, Any],
-    player_data: Optional[Dict[str, Any]],
+    player_data: Optional[Any],
     correct_names: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Dict[str, str]]:
-    """Combine main + player data into a dict keyed by normalized display name."""
-    player_dict: dict[str, dict[str, str]] = {}
+    """Combine main + player data into a dict keyed by normalized display name.
+
+    The output dict keys are normalized display names (uppercased, stripped of
+    hyphens/parenthetical suffixes) and values are strings for:
+    `place`, `total_score`, `thru_hole`, `today_score`, and `perc_make_cut`.
+    """
+    player_dict: Dict[str, Dict[str, str]] = {}
     correct_names = correct_names or {}
     today_map = _build_today_map(player_data)
 
@@ -141,8 +171,8 @@ def build_players_dict(
 
 
 def build_cutline_probs(main_data: Dict[str, Any]) -> List[List[Optional[str]]]:
-    """Build cutline probabilities rows in [strokes, None, probability] format."""
-    values: list[list[str | None]] = []
+    """Build cutline probability rows in [strokes, None, probability] format."""
+    values: List[List[Optional[str]]] = []
     cuts = []
     if isinstance(main_data, dict):
         cuts = main_data.get("cuts", []) or []
@@ -154,7 +184,12 @@ def build_cutline_probs(main_data: Dict[str, Any]) -> List[List[Optional[str]]]:
 
 
 def mode_is_mini(main_data: Dict[str, Any], tour: str = "pga") -> bool:
-    return isinstance(main_data, dict) and tour in main_data and "lb" in main_data[tour]
+    """Return True when the payload matches the mini leaderboard shape."""
+    return (
+        isinstance(main_data, dict)
+        and tour in main_data
+        and "lb" in main_data[tour]
+    )
 
 
 def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -200,7 +235,7 @@ def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
     return rows
 
 
-def _build_today_map(player_data: Optional[Dict[str, Any]]) -> Dict[str, str]:
+def _build_today_map(player_data: Optional[Any]) -> Dict[str, str]:
     today_map: Dict[str, str] = {}
     if not player_data:
         return today_map
