@@ -11,6 +11,7 @@ dependencies = [
   "google-api-python-client",
   "oauth2client",
   "jellyfish",
+  "dfs-common @ ../dfs_common",
 ]
 
 [project.optional-dependencies]
