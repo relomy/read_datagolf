@@ -165,3 +165,4 @@ tmp/**
 .vs/
 test-results.xml
 !build/
+.worktrees/
