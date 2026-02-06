@@ -319,7 +319,7 @@ wheels = [
 [[package]]
 name = "dfs-common"
 version = "0.1.0"
-source = { directory = "../../../dfs_common" }
+source = { directory = "../dfs_common" }
 dependencies = [
     { name = "google-api-python-client" },
     { name = "google-auth" },
@@ -807,7 +807,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4" },
-    { name = "dfs-common", directory = "../../../dfs_common" },
+    { name = "dfs-common", directory = "../dfs_common" },
     { name = "google-api-python-client" },
     { name = "jellyfish" },
     { name = "oauth2client" },

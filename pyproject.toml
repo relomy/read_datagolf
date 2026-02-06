@@ -11,7 +11,7 @@ dependencies = [
   "google-api-python-client",
   "oauth2client",
   "jellyfish",
-  "dfs-common @ file:///Users/alewando/Documents/Repo/dfs-workspace/dfs_common",
+  "dfs-common",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +23,9 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+dfs-common = { path = "../dfs_common" }
 
 [build-system]
 requires = ["setuptools"]
