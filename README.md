@@ -9,7 +9,7 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 ## Requirements
 
-- Python >=3.8 (see `pyproject.toml:[project].requires-python`).
+- Python >=3.9 (see `pyproject.toml:[project].requires-python`).
 - A Google service account credentials JSON at `client_secret.json`
   (see `dfssheet.py:Sheet.setup_service`).
 - Logging configuration at `logging.ini`
@@ -17,6 +17,11 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 - Network access to the DataGolf live model endpoint configured in
   `datagolf_api.py:BASE_URL`.
 - A target spreadsheet ID is hardcoded in `dfssheet.py:Sheet.__init__`.
+
+## Shared Infrastructure
+
+- Google Sheets primitives are provided by `dfs_common`.
+- Local development expects `dfs_common` as a sibling directory (see `pyproject.toml:[tool.uv.sources]`).
 
 ## Configuration
 
