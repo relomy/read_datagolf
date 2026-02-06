@@ -5,10 +5,9 @@ import logging
 import logging.config
 from os import getenv
 from time import strftime
+from typing import Iterable, Mapping
 
 from jellyfish import jaro_winkler_similarity
-
-from typing import Iterable, Mapping
 
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfssheet import DFSSheet
