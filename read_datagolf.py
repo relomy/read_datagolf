@@ -8,18 +8,38 @@ from time import strftime
 
 from jellyfish import jaro_winkler_similarity
 
+from typing import Iterable, Mapping
+
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfssheet import DFSSheet
 
 logger = logging.getLogger(__name__)
 
 
-def get_dg_ranks(players, dict_players):
-    """Compare players from the DFS sheet with datagolf stats dictionary."""
+def get_dg_ranks(
+    players: Iterable[str],
+    dict_players: Mapping[str, Mapping[str, str]],
+) -> list[list[str]]:
+    """Compare DFS sheet player names against DataGolf stats.
+
+    Args:
+        players: Iterable of player names from the DFS sheet.
+        dict_players: Mapping of normalized player names to DataGolf stats
+            built by `datagolf_api.build_players_dict`.
+
+    Returns:
+        List of rows with [place, total_score, thru_hole, today_score,
+        perc_make_cut] for each player in `players`. Unmatched rows are filled
+        with placeholders.
+
+    Notes:
+        Uses Jaro-Winkler similarity to auto-match close names when the best
+        score is > 0.85 (see `jellyfish.jaro_winkler_similarity`).
+    """
     if not players:
         raise Exception("No data found.")
 
-    values = []
+    values: list[list[str]] = []
     normalized_keys = {k: k for k in dict_players}
     for player in players:
         # convert to uppercase and remove dash if there is one
@@ -70,8 +90,12 @@ def get_dg_ranks(players, dict_players):
     return values
 
 
-def main():
-    """Proceed."""
+def main() -> None:
+    """Fetch live model data and write standings to the DFS sheet.
+
+    TODO(read_datagolf.main): Confirm expected worksheet names and column layout
+        for the DFS sheet beyond the hardcoded "GOLF" usage.
+    """
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     correct_names = {
         "TED POTTER JR": "TED POTTER JR.",

@@ -4,6 +4,12 @@ from datagolf_api import build_players_dict
 
 
 def main() -> None:
+    """Verify fixture mappings for build_players_dict.
+
+    TODO(test_fixtures.main): Document where `mini.json` and
+        `player_data_sample.json` fixtures are sourced and add them to the repo
+        if they are required for normal development workflows.
+    """
     with open("mini.json", encoding="utf-8") as fp:
         mini = json.load(fp)
     with open("player_data_sample.json", encoding="utf-8") as fp:
