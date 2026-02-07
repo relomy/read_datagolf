@@ -1,6 +1,7 @@
 import json
 import logging
 import runpy
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -112,6 +113,19 @@ def test_force_run_skips_lookup_logs(monkeypatch, caplog):
     assert "--force-run enabled" in caplog.text
 
 
+def test_main_exits_without_live_contest(monkeypatch, caplog):
+    monkeypatch.setattr(read_datagolf.logging.config, "fileConfig", lambda *args, **kwargs: None)
+    monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: None)
+
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("fetch_main_data should not run")
+
+    monkeypatch.setattr(read_datagolf, "fetch_main_data", _boom)
+    with caplog.at_level(logging.INFO):
+        read_datagolf.main([])
+    assert "No live contests found; exiting." in caplog.text
+
+
 def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     full_data = {"full": "data"}
     dict_players = {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}}
@@ -128,7 +142,7 @@ def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     monkeypatch.setattr(read_datagolf, "DFSSheet", FakeSheet)
     monkeypatch.setattr(read_datagolf, "strftime", lambda *_args, **_kwargs: "20240203_040506")
 
-    read_datagolf.main()
+    read_datagolf.main(["--force-run"])
 
     saved = tmp_path / "datagolf_full_20240203_040506.json"
     assert saved.exists()
@@ -143,12 +157,13 @@ def test_main_skips_empty_writes(monkeypatch):
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: [])
     monkeypatch.setattr(read_datagolf, "DFSSheet", FakeSheet)
 
-    read_datagolf.main()
+    read_datagolf.main(["--force-run"])
 
 
 def test_main_block_runs(monkeypatch):
     monkeypatch.setenv("DG_SAVE_API", "0")
     monkeypatch.setattr(logging.config, "fileConfig", lambda *args, **kwargs: None)
+    monkeypatch.setattr(sys, "argv", ["read_datagolf.py", "--force-run"])
     monkeypatch.setattr(datagolf_api, "fetch_main_data", lambda *args, **kwargs: {"full": "data"})
     monkeypatch.setattr(datagolf_api, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}})
     monkeypatch.setattr(datagolf_api, "build_cutline_probs", lambda *args, **kwargs: [])

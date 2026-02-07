@@ -25,6 +25,9 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 ## Configuration
 
+- `DFS_STATE_DIR`: required for the default run path; used to read the shared
+  `contests.sqlite` and determine whether a LIVE GOLF contest exists. If no
+  live contest is found, the script logs and exits early.
 - `DG_SAVE_API`: when set to a truthy value (`1`, `true`, or `yes`), saves the
   full API response to `datagolf_full_YYYYmmdd_HHMMSS.json`
   (see `read_datagolf.py:main`).
@@ -42,6 +45,12 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 ```bash
 python read_datagolf.py
+```
+
+- To bypass the live-contest gating (for manual or backfill runs):
+
+```bash
+python read_datagolf.py --force-run
 ```
 
 ## Output/Side Effects

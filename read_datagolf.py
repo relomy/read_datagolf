@@ -120,13 +120,17 @@ def get_dg_ranks(
     return values
 
 
-def main() -> None:
+def main(argv=None) -> None:
     """Fetch live model data and write standings to the DFS sheet.
 
     TODO(read_datagolf.main): Confirm expected worksheet names and column layout
         for the DFS sheet beyond the hardcoded "GOLF" usage.
     """
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+    args = parse_args(argv)
+    if not should_run(force_run=args.force_run):
+        logger.info("No live contests found; exiting.")
+        return
     correct_names = {
         "TED POTTER JR": "TED POTTER JR.",
         "BILLY HURLEY III": "BILLY HURLEY",
