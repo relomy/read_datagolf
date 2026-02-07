@@ -7,11 +7,19 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 - `read_datagolf.py` orchestrates fetching live model data and writing results
   to the DFS sheet. See `read_datagolf.py:main`.
 
+The sheet service is built with the repo helper:
+
+```python
+from sheets_service import build_dfs_sheet_service
+
+sheet = build_dfs_sheet_service("GOLF")
+```
+
 ## Requirements
 
 - Python >=3.9 (see `pyproject.toml:[project].requires-python`).
 - A Google service account credentials JSON at `client_secret.json`
-  (see `sheets_service.py:make_sheet_client`).
+  (see `sheets_service.py:build_dfs_sheet_service`).
 - Logging configuration at `logging.ini`
   (see `read_datagolf.py:main`).
 - Network access to the DataGolf live model endpoint configured in
