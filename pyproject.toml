@@ -33,4 +33,12 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["dfssheet", "read_datagolf", "test_fixtures", "datagolf_api"]
+py-modules = [
+  "dfs_sheet_domain",
+  "dfs_sheet_repository",
+  "dfs_sheet_service",
+  "read_datagolf",
+  "sheets_service",
+  "test_fixtures",
+  "datagolf_api",
+]

@@ -7,12 +7,13 @@ from types import SimpleNamespace
 import pytest
 
 import datagolf_api
-import dfssheet
+import dfs_sheet_service
 import read_datagolf
+import sheets_service
 
 
-class FakeSheet:
-    def __init__(self, sport):
+class FakeSheetService:
+    def __init__(self, _repo, sport):
         self.sport = sport
         self.writes = []
 
@@ -58,7 +59,8 @@ def test_get_dg_ranks_auto_match(monkeypatch, caplog):
 
     monkeypatch.setattr(read_datagolf, "jaro_winkler_similarity", fake_similarity)
 
-    values = read_datagolf.get_dg_ranks(["Jon Doe"], dict_players)
+    with caplog.at_level(logging.INFO):
+        values = read_datagolf.get_dg_ranks(["Jon Doe"], dict_players)
     assert values == [["1", "-1", "F", "-2", "10%"]]
     assert any("auto-matched" in record.message for record in caplog.records)
 
@@ -139,7 +141,7 @@ def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: dict_players)
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: dg_ranks)
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: dg_probs)
-    monkeypatch.setattr(read_datagolf, "DFSSheet", FakeSheet)
+    monkeypatch.setattr(read_datagolf, "build_sheet_service", lambda sport: FakeSheetService(None, sport))
     monkeypatch.setattr(read_datagolf, "strftime", lambda *_args, **_kwargs: "20240203_040506")
 
     read_datagolf.main(["--force-run"])
@@ -155,7 +157,7 @@ def test_main_skips_empty_writes(monkeypatch):
     monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {}})
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: [])
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: [])
-    monkeypatch.setattr(read_datagolf, "DFSSheet", FakeSheet)
+    monkeypatch.setattr(read_datagolf, "build_sheet_service", lambda sport: FakeSheetService(None, sport))
 
     read_datagolf.main(["--force-run"])
 
@@ -167,6 +169,7 @@ def test_main_block_runs(monkeypatch):
     monkeypatch.setattr(datagolf_api, "fetch_main_data", lambda *args, **kwargs: {"full": "data"})
     monkeypatch.setattr(datagolf_api, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}})
     monkeypatch.setattr(datagolf_api, "build_cutline_probs", lambda *args, **kwargs: [])
-    monkeypatch.setattr(dfssheet, "DFSSheet", FakeSheet)
+    monkeypatch.setattr(dfs_sheet_service, "DfsSheetService", FakeSheetService)
+    monkeypatch.setattr(sheets_service, "make_sheet_client", lambda: object())
 
     runpy.run_path(str(read_datagolf.__file__), run_name="__main__")

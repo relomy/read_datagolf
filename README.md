@@ -11,12 +11,12 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 - Python >=3.9 (see `pyproject.toml:[project].requires-python`).
 - A Google service account credentials JSON at `client_secret.json`
-  (see `dfssheet.py:Sheet.setup_service`).
+  (see `sheets_service.py:make_sheet_client`).
 - Logging configuration at `logging.ini`
-  (see `read_datagolf.py:main` and `dfssheet.py` module import).
+  (see `read_datagolf.py:main`).
 - Network access to the DataGolf live model endpoint configured in
   `datagolf_api.py:BASE_URL`.
-- A target spreadsheet ID is hardcoded in `dfssheet.py:Sheet.__init__`.
+- A target spreadsheet ID is hardcoded in `sheets_service.py:DEFAULT_SPREADSHEET_ID`.
 
 ## Shared Infrastructure
 
@@ -62,7 +62,7 @@ python read_datagolf.py --force-run
 
 - Reads player names from the `"Name"` column in the worksheet named by
   `sport` (currently `"GOLF"` in `read_datagolf.py:main`) via
-  `dfssheet.DFSSheet.get_players`.
+  `dfs_sheet_service.DfsSheetService.get_players`.
 - Writes DataGolf rank/score columns to `F:J` and cutline probabilities to
   `L:N` (starting at row 4) for the same worksheet
-  (see `read_datagolf.py:main` and `dfssheet.DFSSheet.write_columns`).
+  (see `read_datagolf.py:main` and `dfs_sheet_service.DfsSheetService.write_columns`).
