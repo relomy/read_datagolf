@@ -88,6 +88,63 @@ def test_get_dg_ranks_no_match_prints_suggestions(monkeypatch, capsys):
     assert "Suggestions:" in out
 
 
+def test_get_dg_ranks_exact_match_ignores_periods(monkeypatch, caplog):
+    dict_players = {
+        "JJ SPAUN": {
+            "place": "1",
+            "total_score": "-1",
+            "thru_hole": "F",
+            "today_score": "-2",
+            "perc_make_cut": "10%",
+        }
+    }
+
+    def fail_similarity(_player, _candidate):
+        raise AssertionError("fuzzy similarity should not be called for normalized exact match")
+
+    monkeypatch.setattr(read_datagolf, "jaro_winkler_similarity", fail_similarity)
+
+    with caplog.at_level(logging.INFO):
+        values = read_datagolf.get_dg_ranks(["J.J. SPAUN"], dict_players)
+    assert values == [["1", "-1", "F", "-2", "10%"]]
+    assert not any("auto-matched" in record.message for record in caplog.records)
+
+
+def test_get_dg_ranks_no_match_logs_top_candidates(monkeypatch, caplog):
+    dict_players = {
+        "JONATHAN SPAUN": {
+            "place": "1",
+            "total_score": "-1",
+            "thru_hole": "F",
+            "today_score": "-2",
+            "perc_make_cut": "10%",
+        },
+        "JOHN SMITH": {
+            "place": "2",
+            "total_score": "E",
+            "thru_hole": "12",
+            "today_score": "+1",
+            "perc_make_cut": "50%",
+        },
+    }
+
+    scores = {"JONATHAN SPAUN": 0.83, "JOHN SMITH": 0.10}
+
+    def fake_similarity(_player, candidate):
+        return scores[candidate]
+
+    monkeypatch.setattr(read_datagolf, "jaro_winkler_similarity", fake_similarity)
+
+    with caplog.at_level(logging.WARNING):
+        values = read_datagolf.get_dg_ranks(["J.J. SPAUN"], dict_players)
+
+    assert values == [["???", "", "", "", ""]]
+    assert any(
+        "unmatched; best candidate JONATHAN SPAUN scored 0.830" in record.message
+        for record in caplog.records
+    )
+
+
 def test_parse_args_force_run():
     args = read_datagolf.parse_args(["--force-run"])
     assert args.force_run is True

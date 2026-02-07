@@ -10,12 +10,16 @@ from typing import Iterable, Mapping
 
 from jellyfish import jaro_winkler_similarity
 
+from contest_state import get_live_golf_contest
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfs_sheet_service import DfsSheetService
 from sheets_service import build_dfs_sheet_service
-from contest_state import get_live_golf_contest
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_player_name(name: str) -> str:
+    return name.upper().replace("-", "").replace(".", "")
 
 
 def parse_args(argv=None):
@@ -83,8 +87,8 @@ def get_dg_ranks(
     values: list[list[str]] = []
     normalized_keys = {k: k for k in dict_players}
     for player in players:
-        # convert to uppercase and remove dash if there is one
-        player = player.upper().replace("-", "")
+        # normalize punctuation so exact matches don't require fuzzy fallback
+        player = _normalize_player_name(player)
 
         if player in dict_players:
             values.append(
@@ -122,6 +126,13 @@ def get_dg_ranks(
             else:
                 values.append(["???", "", "", "", ""])
                 print(f"{player}: ???")
+                if best_candidate is not None:
+                    logger.warning(
+                        "%s unmatched; best candidate %s scored %.3f",
+                        player,
+                        best_candidate,
+                        best_score,
+                    )
                 close = [(c, s) for s, c in suggestions[:5] if s >= 0.85]
                 if close:
                     print("  Suggestions:")

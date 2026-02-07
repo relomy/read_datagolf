@@ -47,7 +47,7 @@ before running `read_datagolf.py` so the guard can locate it.
   current live GOLF contest from the shared contest state and writes contest
   details to the sheet header (`read_datagolf.py:main`, `contest_state.py`).
 - `DFS_STATE_DIR`: required when `DG_USE_CONTEST_STATE` is enabled; points to
-  the shared state directory containing `contests.db`.
+the shared state directory containing `contests.db`.
 - `env.example` lists the core vars shown above; copy it to `.env` and customize.
 - Name normalization overrides are defined in the `correct_names` mapping in
   `read_datagolf.py:main`.
