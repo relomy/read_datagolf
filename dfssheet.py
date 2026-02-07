@@ -3,7 +3,7 @@
 import logging
 import logging.config
 from datetime import datetime
-from typing import Any, List, Optional, Protocol, Sequence
+from typing import Any, Protocol, Sequence
 
 from dfs_common.sheets import SheetClient, service_account_provider
 
@@ -30,7 +30,7 @@ class _Vip(Protocol):
 class Sheet:
     """Google Sheets wrapper bound to a single spreadsheet."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
+    def __init__(self, logger: logging.Logger | None = None) -> None:
         self.logger = logger or logging.getLogger(__name__)
 
         # unique ID for DFS Ownership/Value spreadsheet
@@ -53,7 +53,7 @@ class Sheet:
     def service(self, value: Any) -> None:
         self._client._service = value
 
-    def find_sheet_id(self, title: str, *, partial: bool = False) -> Optional[int]:
+    def find_sheet_id(self, title: str, *, partial: bool = False) -> int | None:
         """Find the worksheet ID for a title substring."""
         return self._client.find_sheet_id(title, partial=partial)
 
@@ -78,7 +78,7 @@ class Sheet:
     #     )
     #     return result.get("values", [])
 
-    def get_values_from_range(self, cell_range: str) -> List[List[Any]]:
+    def get_values_from_range(self, cell_range: str) -> list[list[Any]]:
         """Read values from a sheet range."""
         return self._client.get_values(cell_range)
 
@@ -221,7 +221,7 @@ class DFSSheet(Sheet):
         values = train_info
         self.write_values_to_sheet_range(values, cell_range)
 
-    def build_values_for_vip_lineup(self, vip: _Vip) -> List[List[Any]]:
+    def build_values_for_vip_lineup(self, vip: _Vip) -> list[list[Any]]:
         """Build the values block for a single VIP lineup."""
         if "GOLF" in self.sport:
             values = [[vip.name, None, "PMR", vip.pmr, None, None, None]]
@@ -285,11 +285,11 @@ class DFSSheet(Sheet):
             all_lineup_values, f"{self.sport}!{cell_range}"
         )
 
-    def get_players(self) -> List[str]:
+    def get_players(self) -> list[str]:
         """Return player names from the "Name" column in the standings range."""
         return [row[self.columns.index("Name")] for row in self.values]
 
-    def get_lineup_values(self) -> List[List[Any]]:
+    def get_lineup_values(self) -> list[list[Any]]:
         """Return lineup values from the lineup range."""
         return self.get_values_from_range(
             "{0}!{1}".format(self.sport, self.LINEUP_RANGES[self.sport])

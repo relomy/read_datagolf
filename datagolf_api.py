@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import requests
@@ -39,16 +39,16 @@ def _parse_json_or_jsonp(text: str) -> Any:
 
 def _request_jsonp(
     url: str,
-    params: Optional[Dict[str, Any]] = None,
+    params: dict[str, Any] | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     retries: int = DEFAULT_RETRIES,
     backoff: float = DEFAULT_BACKOFF,
-    session: Optional["requests.Session"] = None,
+    session: "requests.Session | None" = None,
 ) -> Any:
     """Fetch JSONP from url with simple retry/backoff and parse to JSON."""
     if requests is None:
         raise ModuleNotFoundError("requests is required for live API calls")
-    last_exc: Optional[Exception] = None
+    last_exc: Exception | None = None
     sess = session or requests.Session()
     for attempt in range(retries):
         try:
@@ -87,7 +87,7 @@ def fetch_main_data(tour: str = "pga", mode: str = "mini") -> Any:
     return _request_jsonp(url)
 
 
-def fetch_player_data(players_last_first: List[str]) -> Dict[str, Any]:
+def fetch_player_data(players_last_first: list[str]) -> dict[str, Any]:
     """Fetch per-player data in a single batch request.
 
     Args:
@@ -104,8 +104,8 @@ def fetch_player_data(players_last_first: List[str]) -> Dict[str, Any]:
 
 
 def extract_players_last_first(
-    main_data: Dict[str, Any], tour: str = "pga"
-) -> List[str]:
+    main_data: dict[str, Any], tour: str = "pga"
+) -> list[str]:
     """Extract players in "Last, First" format for get-player-data.
 
     Handles the "mini" payload structure (uses `lb` rows under `tour`) and
@@ -130,17 +130,17 @@ def extract_players_last_first(
 
 
 def build_players_dict(
-    main_data: Dict[str, Any],
-    player_data: Optional[Any],
-    correct_names: Optional[Dict[str, str]] = None,
-) -> Dict[str, Dict[str, str]]:
+    main_data: dict[str, Any],
+    player_data: Any | None,
+    correct_names: dict[str, str] | None = None,
+) -> dict[str, dict[str, str]]:
     """Combine main + player data into a dict keyed by normalized display name.
 
     The output dict keys are normalized display names (uppercased, stripped of
     hyphens/parenthetical suffixes) and values are strings for:
     `place`, `total_score`, `thru_hole`, `today_score`, and `perc_make_cut`.
     """
-    player_dict: Dict[str, Dict[str, str]] = {}
+    player_dict: dict[str, dict[str, str]] = {}
     correct_names = correct_names or {}
     today_map = _build_today_map(player_data)
 
@@ -170,9 +170,9 @@ def build_players_dict(
     return player_dict
 
 
-def build_cutline_probs(main_data: Dict[str, Any]) -> List[List[Optional[str]]]:
+def build_cutline_probs(main_data: dict[str, Any]) -> list[list[str | None]]:
     """Build cutline probability rows in [strokes, None, probability] format."""
-    values: List[List[Optional[str]]] = []
+    values: list[list[str | None]] = []
     cuts = []
     if isinstance(main_data, dict):
         cuts = main_data.get("cuts", []) or []
@@ -183,7 +183,7 @@ def build_cutline_probs(main_data: Dict[str, Any]) -> List[List[Optional[str]]]:
     return values
 
 
-def mode_is_mini(main_data: Dict[str, Any], tour: str = "pga") -> bool:
+def mode_is_mini(main_data: dict[str, Any], tour: str = "pga") -> bool:
     """Return True when the payload matches the mini leaderboard shape."""
     return (
         isinstance(main_data, dict)
@@ -192,7 +192,7 @@ def mode_is_mini(main_data: Dict[str, Any], tour: str = "pga") -> bool:
     )
 
 
-def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
+def _iter_player_rows(main_data: dict[str, Any]) -> list[dict[str, str]]:
     if mode_is_mini(main_data):
         rows = []
         for row in main_data.get("pga", {}).get("lb", []):
@@ -235,8 +235,8 @@ def _iter_player_rows(main_data: Dict[str, Any]) -> List[Dict[str, str]]:
     return rows
 
 
-def _build_today_map(player_data: Optional[Any]) -> Dict[str, str]:
-    today_map: Dict[str, str] = {}
+def _build_today_map(player_data: Any | None) -> dict[str, str]:
+    today_map: dict[str, str] = {}
     if not player_data:
         return today_map
 
@@ -285,8 +285,8 @@ def _find_today_in_value(value: Any) -> Any:
 
 
 def _lookup_today(
-    today_map: Dict[str, str], last_first: str, display_name: str
-) -> Optional[str]:
+    today_map: dict[str, str], last_first: str, display_name: str
+) -> str | None:
     for key in (_name_key(last_first), _name_key(display_name)):
         if key and key in today_map:
             return today_map[key]
