@@ -26,7 +26,7 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 ## Configuration
 
 - `DFS_STATE_DIR`: required for the default run path; used to read the shared
-  `contests.sqlite` and determine whether a LIVE GOLF contest exists. If no
+  `contests.db` and determine whether a LIVE GOLF contest exists. If no
   live contest is found, the script logs and exits early.
 - `DG_SAVE_API`: when set to a truthy value (`1`, `true`, or `yes`), saves the
   full API response to `datagolf_full_YYYYmmdd_HHMMSS.json`
@@ -35,7 +35,8 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
   current live GOLF contest from the shared contest state and writes contest
   details to the sheet header (`read_datagolf.py:main`, `contest_state.py`).
 - `DFS_STATE_DIR`: required when `DG_USE_CONTEST_STATE` is enabled; points to
-  the shared state directory containing `contests.sqlite`.
+  the shared state directory containing `contests.db`.
+- `env.example` lists the core vars shown above; copy it to `.env` and customize.
 - Name normalization overrides are defined in the `correct_names` mapping in
   `read_datagolf.py:main`.
 
