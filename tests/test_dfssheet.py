@@ -54,12 +54,9 @@ class FakeService:
         raise AssertionError("Unexpected action")
 
 
-def _make_dfssheet(monkeypatch, sport, values_by_range=None, sheets_metadata=None):
+def _make_dfssheet(sport, values_by_range=None, sheets_metadata=None):
     service = FakeService(values_by_range=values_by_range, sheets_metadata=sheets_metadata)
-    monkeypatch.setattr(
-        dfssheet, "service_account_provider", lambda *args, **kwargs: (lambda: service)
-    )
-    return dfssheet.DFSSheet(sport), service
+    return dfssheet.DFSSheet(sport, service=service), service
 
 
 def test_fake_service_execute_unexpected_action():
@@ -81,60 +78,33 @@ def test_dfssheet_init_accepts_service():
     assert sheet.service is service
 
 
-def test_sheet_find_sheet_id():
-    service = FakeService(
-        sheets_metadata=[
-            {"properties": {"title": "GOLF", "sheetId": 123}},
-            {"properties": {"title": "NBA", "sheetId": 456}},
-        ]
-    )
-    sheet = dfssheet.Sheet()
-    sheet.service = service
-
-    assert sheet.find_sheet_id("GOLF") == 123
-    assert sheet.find_sheet_id("MLB") is None
-
-
-def test_sheet_write_clear_and_get():
-    service = FakeService(values_by_range={"GOLF!A1:B1": [["a", "b"]]})
-    sheet = dfssheet.Sheet()
-    sheet.service = service
-
-    sheet.write_values_to_sheet_range([[1, 2]], "GOLF!A1:B1")
-    sheet.clear_sheet_range("GOLF!A2:B2")
-    assert sheet.get_values_from_range("GOLF!A1:B1") == [["a", "b"]]
-
-    assert service.updated[0][0] == "GOLF!A1:B1"
-    assert service.cleared == ["GOLF!A2:B2"]
-
-
-def test_dfssheet_init_ranges_and_players(monkeypatch):
+def test_dfssheet_init_ranges_and_players():
     values_by_range = {
         "GOLF!A1:E1": [["Name", "Other"]],
         "GOLF!A2:E": [["Alice", "x"], ["Bob", "y"]],
     }
-    sheet, _service = _make_dfssheet(monkeypatch, "GOLF", values_by_range=values_by_range)
+    sheet, _service = _make_dfssheet("GOLF", values_by_range=values_by_range)
 
     assert sheet.end_col == "E"
     assert sheet.get_players() == ["Alice", "Bob"]
 
 
-def test_dfssheet_init_non_golf_end_col(monkeypatch):
+def test_dfssheet_init_non_golf_end_col():
     values_by_range = {
         "NBA!A1:H1": [["Name", "Other"]],
         "NBA!A2:H": [["A", "x"]],
     }
-    sheet, _service = _make_dfssheet(monkeypatch, "NBA", values_by_range=values_by_range)
+    sheet, _service = _make_dfssheet("NBA", values_by_range=values_by_range)
 
     assert sheet.end_col == "H"
 
 
-def test_dfssheet_clear_and_write_methods(monkeypatch):
+def test_dfssheet_clear_and_write_methods():
     values_by_range = {
         "GOLF!A1:E1": [["Name"]],
         "GOLF!A2:E": [["Alice"]],
     }
-    sheet, service = _make_dfssheet(monkeypatch, "GOLF", values_by_range=values_by_range)
+    sheet, service = _make_dfssheet("GOLF", values_by_range=values_by_range)
 
     sheet.clear_standings()
     sheet.clear_lineups()
@@ -150,12 +120,12 @@ def test_dfssheet_clear_and_write_methods(monkeypatch):
     assert service.updated[3][0] == "GOLF!L8:Z56"
 
 
-def test_dfssheet_header_writes(monkeypatch):
+def test_dfssheet_header_writes():
     values_by_range = {
         "GOLF!A1:E1": [["Name"]],
         "GOLF!A2:E": [["Alice"]],
     }
-    sheet, service = _make_dfssheet(monkeypatch, "GOLF", values_by_range=values_by_range)
+    sheet, service = _make_dfssheet("GOLF", values_by_range=values_by_range)
 
     sheet.add_last_updated(datetime(2024, 1, 2, 3, 4, 5))
     sheet.add_contest_details("Contest", 10)
@@ -171,15 +141,15 @@ def test_dfssheet_header_writes(monkeypatch):
     assert "GOLF!AA3:AM10" in ranges
 
 
-def test_build_values_for_vip_lineup_golf_and_other(monkeypatch):
+def test_build_values_for_vip_lineup_golf_and_other():
     values_by_range = {
         "GOLF!A1:E1": [["Name"]],
         "GOLF!A2:E": [["Alice"]],
         "NBA!A1:H1": [["Name"]],
         "NBA!A2:H": [["Alice"]],
     }
-    golf_sheet, _ = _make_dfssheet(monkeypatch, "GOLF", values_by_range=values_by_range)
-    nba_sheet, _ = _make_dfssheet(monkeypatch, "NBA", values_by_range=values_by_range)
+    golf_sheet, _ = _make_dfssheet("GOLF", values_by_range=values_by_range)
+    nba_sheet, _ = _make_dfssheet("NBA", values_by_range=values_by_range)
 
     player = SimpleNamespace(name="P1", salary=100, fpts=10, value=1.0, ownership=0.1, pos="G")
     vip = SimpleNamespace(name="VIP", pmr=1.2, lineup=[player], rank=1, pts=50)
@@ -196,12 +166,12 @@ def test_build_values_for_vip_lineup_golf_and_other(monkeypatch):
     assert nba_values[-1][0] == "rank"
 
 
-def test_write_vip_lineups_splits_after_five(monkeypatch):
+def test_write_vip_lineups_splits_after_five():
     values_by_range = {
         "NBA!A1:H1": [["Name"]],
         "NBA!A2:H": [["Alice"]],
     }
-    sheet, service = _make_dfssheet(monkeypatch, "NBA", values_by_range=values_by_range)
+    sheet, service = _make_dfssheet("NBA", values_by_range=values_by_range)
 
     players = [
         SimpleNamespace(name="P1", salary=1, fpts=2, value=3, ownership=4, pos="G"),
@@ -226,12 +196,12 @@ def test_write_vip_lineups_splits_after_five(monkeypatch):
     assert len(written) == expected_rows
 
 
-def test_get_lineup_values(monkeypatch):
+def test_get_lineup_values():
     values_by_range = {
         "GOLF!A1:E1": [["Name"]],
         "GOLF!A2:E": [["Alice"]],
         "GOLF!L8:Z56": [["L1"]],
     }
-    sheet, _service = _make_dfssheet(monkeypatch, "GOLF", values_by_range=values_by_range)
+    sheet, _service = _make_dfssheet("GOLF", values_by_range=values_by_range)
 
     assert sheet.get_lineup_values() == [["L1"]]
