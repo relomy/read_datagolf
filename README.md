@@ -28,6 +28,11 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 - `DG_SAVE_API`: when set to a truthy value (`1`, `true`, or `yes`), saves the
   full API response to `datagolf_full_YYYYmmdd_HHMMSS.json`
   (see `read_datagolf.py:main`).
+- `DG_USE_CONTEST_STATE`: when set to a truthy value, attempts to read the
+  current live GOLF contest from the shared contest state and writes contest
+  details to the sheet header (`read_datagolf.py:main`, `contest_state.py`).
+- `DFS_STATE_DIR`: required when `DG_USE_CONTEST_STATE` is enabled; points to
+  the shared state directory containing `contests.sqlite`.
 - Name normalization overrides are defined in the `correct_names` mapping in
   `read_datagolf.py:main`.
 

@@ -11,6 +11,7 @@ from jellyfish import jaro_winkler_similarity
 
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfssheet import DFSSheet
+from contest_state import get_live_golf_contest
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,11 @@ def main() -> None:
     sport = "GOLF"
     sheet = DFSSheet(sport)
     logger.info("Opened DFS sheet for sport=%s", sport)
+
+    if getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}:
+        live = get_live_golf_contest()
+        if live:
+            sheet.add_contest_details(live.name, live.positions_paid)
 
     # get players from DFS sheet
     sheet_players = sheet.get_players()
