@@ -1,4 +1,5 @@
 from dfs_common import contests
+
 import contest_state
 
 
@@ -27,9 +28,18 @@ def test_contest_state_returns_none_without_env(monkeypatch):
 
 def test_contest_state_reads_live_contest(tmp_path, monkeypatch):
     monkeypatch.setenv("DFS_STATE_DIR", str(tmp_path))
-    db_path = tmp_path / "contests.sqlite"
+    db_path = tmp_path / "contests.db"
     contests.init_schema(db_path)
     contests.upsert_contests(db_path, [_row(99)])
     row = contest_state.get_live_golf_contest()
     assert row is not None
     assert row.dk_id == 99
+
+
+def test_contest_state_uses_live_only(tmp_path, monkeypatch):
+    monkeypatch.setenv("DFS_STATE_DIR", str(tmp_path))
+    db_path = tmp_path / "contests.db"
+    contests.init_schema(db_path)
+    non_live = _row(101) | {"status": "COMPLETE"}
+    contests.upsert_contests(db_path, [non_live])
+    assert contest_state.get_live_golf_contest() is None

@@ -1,5 +1,6 @@
 """Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
+import argparse
 import json
 import logging
 import logging.config
@@ -9,11 +10,55 @@ from typing import Iterable, Mapping
 
 from jellyfish import jaro_winkler_similarity
 
-from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
-from dfssheet import DFSSheet
 from contest_state import get_live_golf_contest
+from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
+from dfs_sheet_service import DfsSheetService
+from sheets_service import build_dfs_sheet_service
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_player_name(name: str) -> str:
+    return name.upper().replace("-", "").replace(".", "")
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force-run",
+        action="store_true",
+        help="Run without live-contest gating",
+    )
+    return parser.parse_args(argv)
+
+
+def should_run(*, force_run: bool) -> bool:
+    use_contest_state = getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}
+    has_state_dir = bool(getenv("DFS_STATE_DIR"))
+
+    if force_run:
+        logger.info("--force-run enabled; skipping live-contest gating.")
+        if use_contest_state and has_state_dir:
+            try:
+                _ = get_live_golf_contest()
+            except RuntimeError:
+                logger.warning(
+                    "DFS_STATE_DIR set but contest lookup failed; "
+                    "continuing due to --force-run."
+                )
+        return True
+
+    if not (use_contest_state and has_state_dir):
+        logger.info(
+            "Contest-state gating disabled (DG_USE_CONTEST_STATE/DFS_STATE_DIR not fully set); continuing."
+        )
+        return True
+
+    try:
+        return get_live_golf_contest() is not None
+    except RuntimeError:
+        logger.warning("DFS_STATE_DIR set but contest lookup failed; exiting.")
+        return False
 
 
 def get_dg_ranks(
@@ -42,8 +87,8 @@ def get_dg_ranks(
     values: list[list[str]] = []
     normalized_keys = {k: k for k in dict_players}
     for player in players:
-        # convert to uppercase and remove dash if there is one
-        player = player.upper().replace("-", "")
+        # normalize punctuation so exact matches don't require fuzzy fallback
+        player = _normalize_player_name(player)
 
         if player in dict_players:
             values.append(
@@ -81,6 +126,13 @@ def get_dg_ranks(
             else:
                 values.append(["???", "", "", "", ""])
                 print(f"{player}: ???")
+                if best_candidate is not None:
+                    logger.warning(
+                        "%s unmatched; best candidate %s scored %.3f",
+                        player,
+                        best_candidate,
+                        best_score,
+                    )
                 close = [(c, s) for s, c in suggestions[:5] if s >= 0.85]
                 if close:
                     print("  Suggestions:")
@@ -90,13 +142,17 @@ def get_dg_ranks(
     return values
 
 
-def main() -> None:
+def main(argv=None) -> None:
     """Fetch live model data and write standings to the DFS sheet.
 
     TODO(read_datagolf.main): Confirm expected worksheet names and column layout
         for the DFS sheet beyond the hardcoded "GOLF" usage.
     """
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+    args = parse_args(argv)
+    if not should_run(force_run=args.force_run):
+        logger.info("No live contests found; exiting.")
+        return
     correct_names = {
         "TED POTTER JR": "TED POTTER JR.",
         "BILLY HURLEY III": "BILLY HURLEY",
@@ -119,7 +175,7 @@ def main() -> None:
 
     # create DFSsheet object
     sport = "GOLF"
-    sheet = DFSSheet(sport)
+    sheet = build_dfs_sheet_service(sport)
     logger.info("Opened DFS sheet for sport=%s", sport)
 
     if getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}:
