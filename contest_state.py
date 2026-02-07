@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-import os
-from pathlib import Path
+import logging
 
-from dfs_common import contests
+from dfs_common import contests, state
+
+logger = logging.getLogger(__name__)
 
 
 def get_live_golf_contest():
-    state_dir = os.getenv("DFS_STATE_DIR")
-    if not state_dir:
+    try:
+        db_path = state.contests_db_path()
+    except RuntimeError:
+        logger.debug("DFS_STATE_DIR is not configured; skipping contest lookup.")
         return None
-    db_path = Path(state_dir) / "contests.db"
+
     try:
         contest = contests.get_live_contest(db_path, sport="GOLF")
     except Exception as exc:
         raise RuntimeError("Contest lookup failed") from exc
+
     if contest and contest.status == "LIVE":
         return contest
     return None

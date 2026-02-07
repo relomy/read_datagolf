@@ -23,6 +23,10 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 - Google Sheets primitives are provided by `dfs_common`.
 - Local development expects `dfs_common` as a sibling directory (see `pyproject.toml:[tool.uv.sources]`).
 
+Google Sheets helpers call `dfs_common.sheets.service_account_provider`, which raises if the
+`client_secret.json` service account file is missing. Place that file in the repository root
+before running `read_datagolf.py` so the guard can locate it.
+
 ## Configuration
 
 - `DFS_STATE_DIR`: required for the default run path; used to read the shared
