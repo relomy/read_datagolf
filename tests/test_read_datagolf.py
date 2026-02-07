@@ -94,13 +94,26 @@ def test_parse_args_force_run():
 
 
 def test_should_run_with_live_contest(monkeypatch):
+    monkeypatch.setenv("DG_USE_CONTEST_STATE", "1")
     monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: object())
     assert read_datagolf.should_run(force_run=False) is True
 
 
 def test_should_not_run_without_live_contest(monkeypatch):
+    monkeypatch.setenv("DG_USE_CONTEST_STATE", "1")
+    monkeypatch.setenv("DFS_STATE_DIR", "/tmp/dfs_state")
     monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: None)
     assert read_datagolf.should_run(force_run=False) is False
+
+
+def test_should_run_skips_lookup_when_contest_state_disabled(monkeypatch):
+    def _fail():
+        raise AssertionError("contest lookup should not run")
+
+    monkeypatch.delenv("DG_USE_CONTEST_STATE", raising=False)
+    monkeypatch.delenv("DFS_STATE_DIR", raising=False)
+    monkeypatch.setattr(read_datagolf, "get_live_golf_contest", _fail)
+    assert read_datagolf.should_run(force_run=False) is True
 
 
 def test_force_run_skips_lookup_logs(monkeypatch, caplog):
@@ -116,6 +129,8 @@ def test_force_run_skips_lookup_logs(monkeypatch, caplog):
 
 def test_main_exits_without_live_contest(monkeypatch, caplog):
     monkeypatch.setattr(read_datagolf.logging.config, "fileConfig", lambda *args, **kwargs: None)
+    monkeypatch.setenv("DG_USE_CONTEST_STATE", "1")
+    monkeypatch.setenv("DFS_STATE_DIR", "/tmp/dfs_state")
     monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: None)
 
     def _boom(*_args, **_kwargs):

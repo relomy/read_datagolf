@@ -29,9 +29,12 @@ def parse_args(argv=None):
 
 
 def should_run(*, force_run: bool) -> bool:
+    use_contest_state = getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}
+    has_state_dir = bool(getenv("DFS_STATE_DIR"))
+
     if force_run:
         logger.info("--force-run enabled; skipping live-contest gating.")
-        if getenv("DFS_STATE_DIR"):
+        if use_contest_state and has_state_dir:
             try:
                 _ = get_live_golf_contest()
             except RuntimeError:
@@ -40,6 +43,13 @@ def should_run(*, force_run: bool) -> bool:
                     "continuing due to --force-run."
                 )
         return True
+
+    if not (use_contest_state and has_state_dir):
+        logger.info(
+            "Contest-state gating disabled (DG_USE_CONTEST_STATE/DFS_STATE_DIR not fully set); continuing."
+        )
+        return True
+
     try:
         return get_live_golf_contest() is not None
     except RuntimeError:
