@@ -11,9 +11,8 @@ from typing import Iterable, Mapping
 from jellyfish import jaro_winkler_similarity
 
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
-from dfs_sheet_repository import DfsSheetRepository
 from dfs_sheet_service import DfsSheetService
-from sheets_service import make_sheet_client
+from sheets_service import build_dfs_sheet_service
 from contest_state import get_live_golf_contest
 
 logger = logging.getLogger(__name__)
@@ -122,12 +121,6 @@ def get_dg_ranks(
     return values
 
 
-def build_sheet_service(sport: str) -> DfsSheetService:
-    client = make_sheet_client()
-    repo = DfsSheetRepository(client)
-    return DfsSheetService(repo, sport)
-
-
 def main(argv=None) -> None:
     """Fetch live model data and write standings to the DFS sheet.
 
@@ -161,7 +154,7 @@ def main(argv=None) -> None:
 
     # create DFSsheet object
     sport = "GOLF"
-    sheet = build_sheet_service(sport)
+    sheet = build_dfs_sheet_service(sport)
     logger.info("Opened DFS sheet for sport=%s", sport)
 
     if getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}:

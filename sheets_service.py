@@ -6,6 +6,9 @@ from typing import Any
 
 from dfs_common.sheets import SheetClient, service_account_provider
 
+from dfs_sheet_repository import DfsSheetRepository
+from dfs_sheet_service import DfsSheetService
+
 DEFAULT_SPREADSHEET_ID = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
 
 
@@ -34,3 +37,21 @@ def make_sheet_client(
         credentials_provider=credentials_provider,
         logger=logger,
     )
+
+
+def build_dfs_sheet_service(
+    sport: str,
+    *,
+    spreadsheet_id: str | None = None,
+    service: Any | None = None,
+    credentials_provider: Any | None = None,
+    logger: logging.Logger | None = None,
+) -> DfsSheetService:
+    client = make_sheet_client(
+        spreadsheet_id=spreadsheet_id,
+        service=service,
+        credentials_provider=credentials_provider,
+        logger=logger,
+    )
+    repo = DfsSheetRepository(client)
+    return DfsSheetService(repo, sport)

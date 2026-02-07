@@ -7,7 +7,6 @@ from types import SimpleNamespace
 import pytest
 
 import datagolf_api
-import dfs_sheet_service
 import read_datagolf
 import sheets_service
 
@@ -141,7 +140,16 @@ def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: dict_players)
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: dg_ranks)
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: dg_probs)
-    monkeypatch.setattr(read_datagolf, "build_sheet_service", lambda sport: FakeSheetService(None, sport))
+    monkeypatch.setattr(
+        sheets_service,
+        "build_dfs_sheet_service",
+        lambda sport, **_kwargs: FakeSheetService(None, sport),
+    )
+    monkeypatch.setattr(
+        read_datagolf,
+        "build_dfs_sheet_service",
+        lambda sport, **_kwargs: FakeSheetService(None, sport),
+    )
     monkeypatch.setattr(read_datagolf, "strftime", lambda *_args, **_kwargs: "20240203_040506")
 
     read_datagolf.main(["--force-run"])
@@ -157,7 +165,11 @@ def test_main_skips_empty_writes(monkeypatch):
     monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {}})
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: [])
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: [])
-    monkeypatch.setattr(read_datagolf, "build_sheet_service", lambda sport: FakeSheetService(None, sport))
+    monkeypatch.setattr(
+        read_datagolf,
+        "build_dfs_sheet_service",
+        lambda sport, **_kwargs: FakeSheetService(None, sport),
+    )
 
     read_datagolf.main(["--force-run"])
 
@@ -169,7 +181,10 @@ def test_main_block_runs(monkeypatch):
     monkeypatch.setattr(datagolf_api, "fetch_main_data", lambda *args, **kwargs: {"full": "data"})
     monkeypatch.setattr(datagolf_api, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}})
     monkeypatch.setattr(datagolf_api, "build_cutline_probs", lambda *args, **kwargs: [])
-    monkeypatch.setattr(dfs_sheet_service, "DfsSheetService", FakeSheetService)
-    monkeypatch.setattr(sheets_service, "make_sheet_client", lambda: object())
+    monkeypatch.setattr(
+        sheets_service,
+        "build_dfs_sheet_service",
+        lambda sport, **_kwargs: FakeSheetService(None, sport),
+    )
 
     runpy.run_path(str(read_datagolf.__file__), run_name="__main__")
