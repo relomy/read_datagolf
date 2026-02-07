@@ -1,5 +1,6 @@
 """Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
+import argparse
 import json
 import logging
 import logging.config
@@ -14,6 +15,35 @@ from dfssheet import DFSSheet
 from contest_state import get_live_golf_contest
 
 logger = logging.getLogger(__name__)
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force-run",
+        action="store_true",
+        help="Run without live-contest gating",
+    )
+    return parser.parse_args(argv)
+
+
+def should_run(*, force_run: bool) -> bool:
+    if force_run:
+        logger.info("--force-run enabled; skipping live-contest gating.")
+        if getenv("DFS_STATE_DIR"):
+            try:
+                _ = get_live_golf_contest()
+            except RuntimeError:
+                logger.warning(
+                    "DFS_STATE_DIR set but contest lookup failed; "
+                    "continuing due to --force-run."
+                )
+        return True
+    try:
+        return get_live_golf_contest() is not None
+    except RuntimeError:
+        logger.warning("DFS_STATE_DIR set but contest lookup failed; exiting.")
+        return False
 
 
 def get_dg_ranks(

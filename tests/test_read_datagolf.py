@@ -86,6 +86,32 @@ def test_get_dg_ranks_no_match_prints_suggestions(monkeypatch, capsys):
     assert "Suggestions:" in out
 
 
+def test_parse_args_force_run():
+    args = read_datagolf.parse_args(["--force-run"])
+    assert args.force_run is True
+
+
+def test_should_run_with_live_contest(monkeypatch):
+    monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: object())
+    assert read_datagolf.should_run(force_run=False) is True
+
+
+def test_should_not_run_without_live_contest(monkeypatch):
+    monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: None)
+    assert read_datagolf.should_run(force_run=False) is False
+
+
+def test_force_run_skips_lookup_logs(monkeypatch, caplog):
+    def _fail():
+        raise RuntimeError("boom")
+
+    monkeypatch.setenv("DFS_STATE_DIR", "/tmp/dfs-state")
+    monkeypatch.setattr(read_datagolf, "get_live_golf_contest", _fail)
+    with caplog.at_level(logging.INFO):
+        assert read_datagolf.should_run(force_run=True) is True
+    assert "--force-run enabled" in caplog.text
+
+
 def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     full_data = {"full": "data"}
     dict_players = {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}}

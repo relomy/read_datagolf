@@ -33,3 +33,12 @@ def test_contest_state_reads_live_contest(tmp_path, monkeypatch):
     row = contest_state.get_live_golf_contest()
     assert row is not None
     assert row.dk_id == 99
+
+
+def test_contest_state_uses_live_only(tmp_path, monkeypatch):
+    monkeypatch.setenv("DFS_STATE_DIR", str(tmp_path))
+    db_path = tmp_path / "contests.sqlite"
+    contests.init_schema(db_path)
+    non_live = _row(101) | {"status": "COMPLETE"}
+    contests.upsert_contests(db_path, [non_live])
+    assert contest_state.get_live_golf_contest() is None
