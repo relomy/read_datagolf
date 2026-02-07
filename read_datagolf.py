@@ -136,7 +136,6 @@ def get_dg_ranks(
                 )
             else:
                 values.append(["???", "", "", "", ""])
-                print(f"{player}: ???")
                 if best_candidate is not None:
                     best_candidate_name = normalized_keys[best_candidate]
                     logger.warning(
@@ -174,9 +173,8 @@ def get_dg_ranks(
                     if score >= 0.85
                 ]
                 if close:
-                    print("  Suggestions:")
-                    for name, score in close:
-                        print(f"   - {name}: {score:.3f}")
+                    close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
+                    logger.warning("%s unmatched; suggestions above threshold: %s", player, close_text)
 
     return values
 

@@ -64,7 +64,7 @@ def test_get_dg_ranks_auto_match(monkeypatch, caplog):
     assert any("auto-matched" in record.message for record in caplog.records)
 
 
-def test_get_dg_ranks_no_match_prints_suggestions(monkeypatch, capsys):
+def test_get_dg_ranks_no_match_logs_suggestions(monkeypatch, caplog):
     dict_players = {
         "KNOWN": {
             "place": "1",
@@ -80,12 +80,12 @@ def test_get_dg_ranks_no_match_prints_suggestions(monkeypatch, capsys):
 
     monkeypatch.setattr(read_datagolf, "jaro_winkler_similarity", fake_similarity)
 
-    values = read_datagolf.get_dg_ranks(["Unknown"], dict_players)
+    with caplog.at_level(logging.WARNING):
+        values = read_datagolf.get_dg_ranks(["Unknown"], dict_players)
     assert values == [["???", "", "", "", ""]]
-
-    out = capsys.readouterr().out
-    assert "UNKNOWN: ???" in out
-    assert "Suggestions:" in out
+    assert any("UNKNOWN unmatched; best candidate KNOWN scored 0.850" in record.message for record in caplog.records)
+    assert any("UNKNOWN unmatched; top candidates: KNOWN (0.850)" in record.message for record in caplog.records)
+    assert any("UNKNOWN unmatched; API has no players with last name UNKNOWN" in record.message for record in caplog.records)
 
 
 def test_get_dg_ranks_exact_match_ignores_periods(monkeypatch, caplog):
