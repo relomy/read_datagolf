@@ -22,6 +22,11 @@ def _normalize_player_name(name: str) -> str:
     return name.upper().replace("-", "").replace(".", "")
 
 
+def _player_last_name(normalized_name: str) -> str:
+    tokens = normalized_name.split()
+    return tokens[-1] if tokens else ""
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -85,19 +90,24 @@ def get_dg_ranks(
         raise Exception("No data found.")
 
     values: list[list[str]] = []
-    normalized_keys = {k: k for k in dict_players}
+    normalized_keys: dict[str, str] = {}
+    for original_key in dict_players:
+        normalized_key = _normalize_player_name(original_key)
+        normalized_keys.setdefault(normalized_key, original_key)
+
     for player in players:
         # normalize punctuation so exact matches don't require fuzzy fallback
         player = _normalize_player_name(player)
 
-        if player in dict_players:
+        exact_key = normalized_keys.get(player)
+        if exact_key is not None:
             values.append(
                 [
-                    dict_players[player]["place"],
-                    dict_players[player]["total_score"],
-                    dict_players[player]["thru_hole"],
-                    dict_players[player]["today_score"],
-                    dict_players[player]["perc_make_cut"],
+                    dict_players[exact_key]["place"],
+                    dict_players[exact_key]["total_score"],
+                    dict_players[exact_key]["thru_hole"],
+                    dict_players[exact_key]["today_score"],
+                    dict_players[exact_key]["perc_make_cut"],
                 ]
             )
         else:
@@ -108,32 +118,61 @@ def get_dg_ranks(
             suggestions.sort(reverse=True)
             best_score, best_candidate = suggestions[0] if suggestions else (0.0, None)
             if best_candidate and best_score > 0.85:
+                matched_key = normalized_keys[best_candidate]
                 logger.info(
                     "%s: auto-matched to %s (%.3f)",
                     player,
-                    best_candidate,
+                    matched_key,
                     best_score,
                 )
                 values.append(
                     [
-                        dict_players[best_candidate]["place"],
-                        dict_players[best_candidate]["total_score"],
-                        dict_players[best_candidate]["thru_hole"],
-                        dict_players[best_candidate]["today_score"],
-                        dict_players[best_candidate]["perc_make_cut"],
+                        dict_players[matched_key]["place"],
+                        dict_players[matched_key]["total_score"],
+                        dict_players[matched_key]["thru_hole"],
+                        dict_players[matched_key]["today_score"],
+                        dict_players[matched_key]["perc_make_cut"],
                     ]
                 )
             else:
                 values.append(["???", "", "", "", ""])
                 print(f"{player}: ???")
                 if best_candidate is not None:
+                    best_candidate_name = normalized_keys[best_candidate]
                     logger.warning(
                         "%s unmatched; best candidate %s scored %.3f",
                         player,
-                        best_candidate,
+                        best_candidate_name,
                         best_score,
                     )
-                close = [(c, s) for s, c in suggestions[:5] if s >= 0.85]
+                top_candidates = ", ".join(
+                    f"{normalized_keys[candidate]} ({score:.3f})"
+                    for score, candidate in suggestions[:3]
+                )
+                if top_candidates:
+                    logger.warning("%s unmatched; top candidates: %s", player, top_candidates)
+                last_name = _player_last_name(player)
+                if last_name:
+                    same_last = [
+                        name for name in normalized_keys.values() if name.split() and name.split()[-1] == last_name
+                    ]
+                    if same_last:
+                        logger.warning(
+                            "%s unmatched; API contains last-name matches: %s",
+                            player,
+                            ", ".join(same_last[:5]),
+                        )
+                    else:
+                        logger.warning(
+                            "%s unmatched; API has no players with last name %s",
+                            player,
+                            last_name,
+                        )
+                close = [
+                    (normalized_keys[candidate], score)
+                    for score, candidate in suggestions[:5]
+                    if score >= 0.85
+                ]
                 if close:
                     print("  Suggestions:")
                     for name, score in close:
