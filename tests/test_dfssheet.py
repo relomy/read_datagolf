@@ -68,6 +68,19 @@ def test_fake_service_execute_unexpected_action():
         service.execute()
 
 
+def test_dfssheet_init_accepts_service():
+    service = FakeService(
+        values_by_range={
+            "GOLF!A1:E1": [["Name"]],
+            "GOLF!A2:E": [["Alice"]],
+        }
+    )
+
+    sheet = dfssheet.DFSSheet("GOLF", service=service)
+
+    assert sheet.service is service
+
+
 def test_sheet_find_sheet_id():
     service = FakeService(
         sheets_metadata=[

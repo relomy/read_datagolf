@@ -3,11 +3,23 @@
 import logging
 import logging.config
 from datetime import datetime
+from os import getenv
 from typing import Any, Protocol, Sequence
 
 from dfs_common.sheets import SheetClient, service_account_provider
 
 logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+
+DEFAULT_SPREADSHEET_ID = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
+
+
+def _resolve_spreadsheet_id(spreadsheet_id: str | None) -> str:
+    if spreadsheet_id:
+        return spreadsheet_id
+    env_spreadsheet_id = getenv("SPREADSHEET_ID")
+    if env_spreadsheet_id:
+        return env_spreadsheet_id
+    return DEFAULT_SPREADSHEET_ID
 
 
 class _VipPlayer(Protocol):
@@ -30,14 +42,24 @@ class _Vip(Protocol):
 class Sheet:
     """Google Sheets wrapper bound to a single spreadsheet."""
 
-    def __init__(self, logger: logging.Logger | None = None) -> None:
+    def __init__(
+        self,
+        logger: logging.Logger | None = None,
+        *,
+        spreadsheet_id: str | None = None,
+        service: Any | None = None,
+        credentials_provider: Any | None = None,
+    ) -> None:
         self.logger = logger or logging.getLogger(__name__)
 
         # unique ID for DFS Ownership/Value spreadsheet
-        self.spreadsheet_id = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
+        self.spreadsheet_id = _resolve_spreadsheet_id(spreadsheet_id)
+        if credentials_provider is None and service is None:
+            credentials_provider = service_account_provider("client_secret.json")
         self._client = SheetClient(
             spreadsheet_id=self.spreadsheet_id,
-            credentials_provider=service_account_provider("client_secret.json"),
+            service=service,
+            credentials_provider=credentials_provider,
             logger=self.logger,
         )
 
@@ -116,7 +138,14 @@ class DFSSheet(Sheet):
         "USFL": "J3:V66",
     }
 
-    def __init__(self, sport: str) -> None:
+    def __init__(
+        self,
+        sport: str,
+        *,
+        spreadsheet_id: str | None = None,
+        service: Any | None = None,
+        credentials_provider: Any | None = None,
+    ) -> None:
         """Initialize sheet ranges based on the sport worksheet name."""
         self.sport = sport
 
@@ -131,7 +160,11 @@ class DFSSheet(Sheet):
         )
 
         # init Sheet (super) class
-        super().__init__()
+        super().__init__(
+            spreadsheet_id=spreadsheet_id,
+            service=service,
+            credentials_provider=credentials_provider,
+        )
 
         # get columns from first row
         self.columns = self.get_values_from_range(
