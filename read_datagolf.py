@@ -4,10 +4,12 @@ import argparse
 import json
 import logging
 import logging.config
+import os
 from os import getenv
 from time import strftime
 from typing import Iterable, Mapping
 
+from dfs_common import config as common_config
 from dfs_common import contests, state
 from jellyfish import jaro_winkler_similarity
 
@@ -16,6 +18,12 @@ from dfs_sheet_service import DfsSheetService
 from sheets_service import build_dfs_sheet_service
 
 logger = logging.getLogger(__name__)
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 
 def get_live_golf_contest():
@@ -54,9 +62,14 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def should_run(*, force_run: bool) -> bool:
-    use_contest_state = getenv("DG_USE_CONTEST_STATE", "").lower() in {"1", "true", "yes"}
-    has_state_dir = bool(getenv("DFS_STATE_DIR"))
+def should_run(
+    *,
+    force_run: bool,
+    settings: common_config.ReadDataGolfSettings | None = None,
+) -> bool:
+    cfg = settings or common_config.resolve_read_datagolf_settings()
+    use_contest_state = cfg.dg_use_contest_state
+    has_state_dir = bool(cfg.dfs_state_dir or getenv("DFS_STATE_DIR"))
 
     if force_run:
         logger.info("--force-run enabled; skipping live-contest gating.")
@@ -203,8 +216,15 @@ def main(argv=None) -> None:
         for the DFS sheet beyond the hardcoded "GOLF" usage.
     """
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+    load_dotenv()
+    file_config = common_config.load_json_config()
+    settings = common_config.resolve_read_datagolf_settings(file_config)
+    if settings.dfs_state_dir and not getenv("DFS_STATE_DIR"):
+        os.environ["DFS_STATE_DIR"] = settings.dfs_state_dir
+    if settings.spreadsheet_id and not getenv("SPREADSHEET_ID"):
+        os.environ["SPREADSHEET_ID"] = settings.spreadsheet_id
     args = parse_args(argv)
-    if not should_run(force_run=args.force_run):
+    if not should_run(force_run=args.force_run, settings=settings):
         logger.info("No live contests found; exiting.")
         return
     correct_names = {
@@ -218,7 +238,7 @@ def main(argv=None) -> None:
     # Fetch full data once; includes place/score/thru/today/cut for all players.
     logger.info("Fetching full live-model data for PGA")
     full_data = fetch_main_data(mode="full", tour="pga")
-    if getenv("DG_SAVE_API", "").lower() in {"1", "true", "yes"}:
+    if settings.dg_save_api:
         ts = strftime("%Y%m%d_%H%M%S")
         path = f"datagolf_full_{ts}.json"
         with open(path, "w", encoding="utf-8") as fp:
