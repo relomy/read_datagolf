@@ -8,14 +8,31 @@ from os import getenv
 from time import strftime
 from typing import Iterable, Mapping
 
+from dfs_common import contests, state
 from jellyfish import jaro_winkler_similarity
 
-from contest_state import get_live_golf_contest
 from datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
 from dfs_sheet_service import DfsSheetService
 from sheets_service import build_dfs_sheet_service
 
 logger = logging.getLogger(__name__)
+
+
+def get_live_golf_contest():
+    try:
+        db_path = state.contests_db_path()
+    except RuntimeError:
+        logger.debug("DFS_STATE_DIR is not configured; skipping contest lookup.")
+        return None
+
+    try:
+        contest = contests.get_live_contest(db_path, sport="GOLF")
+    except Exception as exc:
+        raise RuntimeError("Contest lookup failed") from exc
+
+    if contest and contest.status == "LIVE":
+        return contest
+    return None
 
 
 def _normalize_player_name(name: str) -> str:

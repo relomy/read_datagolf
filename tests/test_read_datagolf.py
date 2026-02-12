@@ -221,6 +221,22 @@ def test_should_run_with_live_contest(monkeypatch):
     assert read_datagolf.should_run(force_run=False) is True
 
 
+def test_get_live_golf_contest_uses_dfs_common(monkeypatch):
+    class LiveRow:
+        status = "LIVE"
+
+    monkeypatch.setattr(read_datagolf.state, "contests_db_path", lambda: "/tmp/contests.db")
+    monkeypatch.setattr(
+        read_datagolf.contests,
+        "get_live_contest",
+        lambda db_path, sport: LiveRow() if db_path == "/tmp/contests.db" and sport == "GOLF" else None,
+    )
+
+    row = read_datagolf.get_live_golf_contest()
+    assert row is not None
+    assert row.status == "LIVE"
+
+
 def test_should_not_run_without_live_contest(monkeypatch):
     monkeypatch.setenv("DG_USE_CONTEST_STATE", "1")
     monkeypatch.setenv("DFS_STATE_DIR", "/tmp/dfs_state")

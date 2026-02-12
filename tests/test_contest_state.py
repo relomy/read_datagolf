@@ -1,6 +1,6 @@
 from dfs_common import contests
 
-import contest_state
+import read_datagolf
 
 
 def _row(dk_id: int):
@@ -23,7 +23,7 @@ def _row(dk_id: int):
 
 def test_contest_state_returns_none_without_env(monkeypatch):
     monkeypatch.delenv("DFS_STATE_DIR", raising=False)
-    assert contest_state.get_live_golf_contest() is None
+    assert read_datagolf.get_live_golf_contest() is None
 
 
 def test_contest_state_reads_live_contest(tmp_path, monkeypatch):
@@ -31,7 +31,7 @@ def test_contest_state_reads_live_contest(tmp_path, monkeypatch):
     db_path = tmp_path / "contests.db"
     contests.init_schema(db_path)
     contests.upsert_contests(db_path, [_row(99)])
-    row = contest_state.get_live_golf_contest()
+    row = read_datagolf.get_live_golf_contest()
     assert row is not None
     assert row.dk_id == 99
 
@@ -42,4 +42,4 @@ def test_contest_state_uses_live_only(tmp_path, monkeypatch):
     contests.init_schema(db_path)
     non_live = _row(101) | {"status": "COMPLETE"}
     contests.upsert_contests(db_path, [non_live])
-    assert contest_state.get_live_golf_contest() is None
+    assert read_datagolf.get_live_golf_contest() is None
