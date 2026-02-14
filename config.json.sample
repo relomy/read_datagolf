@@ -1,0 +1,6 @@
+{
+  "dfs_state_dir": "/path/to/dfs-state",
+  "spreadsheet_id": "your-spreadsheet-id",
+  "dg_use_contest_state": true,
+  "dg_save_api": false
+}
