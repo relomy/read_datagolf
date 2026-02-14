@@ -5,6 +5,9 @@ Pipfile.lock
 *.html
 .remote-sync.json
 
+# ignore config.json
+config.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
