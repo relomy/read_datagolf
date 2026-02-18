@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from dfs_sheet_domain import (
+from read_datagolf.dfs_sheet_domain import (
     build_values_for_vip_lineup,
     data_range_for_sport,
     end_col_for_sport,

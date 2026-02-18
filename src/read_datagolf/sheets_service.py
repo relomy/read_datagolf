@@ -6,8 +6,8 @@ from typing import Any
 
 from dfs_common.sheets import SheetClient, service_account_provider
 
-from dfs_sheet_repository import DfsSheetRepository
-from dfs_sheet_service import DfsSheetService
+from read_datagolf.dfs_sheet_repository import DfsSheetRepository
+from read_datagolf.dfs_sheet_service import DfsSheetService
 
 DEFAULT_SPREADSHEET_ID = "1Jv5nT-yUoEarkzY5wa7RW0_y0Dqoj8_zDrjeDs-pHL4"
 

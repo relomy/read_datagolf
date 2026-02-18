@@ -2,8 +2,8 @@ import builtins
 import io
 import runpy
 
-import test_fixtures
-import datagolf_api
+import read_datagolf.datagolf_api as datagolf_api
+import read_datagolf.test_fixtures as test_fixtures
 
 
 def _fake_open(*_args, **_kwargs):

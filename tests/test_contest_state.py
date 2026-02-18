@@ -1,6 +1,6 @@
 from dfs_common import contests
 
-import read_datagolf
+import read_datagolf.cli.read_datagolf as read_datagolf
 
 
 def _row(dk_id: int):

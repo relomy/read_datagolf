@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import datagolf_api as api
+import read_datagolf.datagolf_api as api
 
 
 class FakeResponse:

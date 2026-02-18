@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import datagolf_api
-import read_datagolf
-import sheets_service
+import read_datagolf.datagolf_api as datagolf_api
+import read_datagolf.cli.read_datagolf as read_datagolf
+import read_datagolf.sheets_service as sheets_service
 
 
 class FakeSheetService:

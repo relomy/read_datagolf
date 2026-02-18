@@ -4,8 +4,8 @@ from datetime import datetime
 
 from dfs_common.sheets import SheetClient
 
-from dfs_sheet_repository import DfsSheetRepository
-from dfs_sheet_service import DfsSheetService
+from read_datagolf.dfs_sheet_repository import DfsSheetRepository
+from read_datagolf.dfs_sheet_service import DfsSheetService
 
 
 class FakeService:
