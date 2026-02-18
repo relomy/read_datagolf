@@ -38,13 +38,17 @@ def _expected_player_dict():
 
 def test_main_runs_with_patched_fixtures(monkeypatch):
     monkeypatch.setattr(builtins, "open", _fake_open)
-    monkeypatch.setattr(test_fixtures, "build_players_dict", lambda *_args, **_kwargs: _expected_player_dict())
+    monkeypatch.setattr(
+        test_fixtures, "build_players_dict", lambda *_args, **_kwargs: _expected_player_dict()
+    )
 
     test_fixtures.main()
 
 
 def test_module_main_block(monkeypatch):
     monkeypatch.setattr(builtins, "open", _fake_open)
-    monkeypatch.setattr(datagolf_api, "build_players_dict", lambda *_args, **_kwargs: _expected_player_dict())
+    monkeypatch.setattr(
+        datagolf_api, "build_players_dict", lambda *_args, **_kwargs: _expected_player_dict()
+    )
 
     runpy.run_path(str(test_fixtures.__file__), run_name="__main__")

@@ -19,4 +19,3 @@ def repo_root(start: Path | None = None) -> Path:
 def repo_file(*parts: str) -> Path:
     """Return a path under repo root."""
     return repo_root() / Path(*parts)
-

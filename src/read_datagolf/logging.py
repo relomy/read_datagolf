@@ -29,4 +29,3 @@ def configure_logging() -> logging.Logger:
         logger.addHandler(handler)
     logger.setLevel(_resolve_level())
     return logger
-

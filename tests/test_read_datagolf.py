@@ -2,13 +2,12 @@ import json
 import logging
 import runpy
 import sys
-from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 
-import read_datagolf.datagolf_api as datagolf_api
 import read_datagolf.cli.read_datagolf as read_datagolf
-import read_datagolf.sheets_service as sheets_service
+import read_datagolf.datagolf_api as datagolf_api
 
 
 class FakeSheetService:
@@ -83,9 +82,18 @@ def test_get_dg_ranks_no_match_logs_suggestions(monkeypatch, caplog):
     with caplog.at_level(logging.WARNING):
         values = read_datagolf.get_dg_ranks(["Unknown"], dict_players)
     assert values == [["???", "", "", "", ""]]
-    assert any("UNKNOWN unmatched; best candidate KNOWN scored 0.850" in record.message for record in caplog.records)
-    assert any("UNKNOWN unmatched; top candidates: KNOWN (0.850)" in record.message for record in caplog.records)
-    assert any("UNKNOWN unmatched; API has no players with last name UNKNOWN" in record.message for record in caplog.records)
+    assert any(
+        "UNKNOWN unmatched; best candidate KNOWN scored 0.850" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "UNKNOWN unmatched; top candidates: KNOWN (0.850)" in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "UNKNOWN unmatched; API has no players with last name UNKNOWN" in record.message
+        for record in caplog.records
+    )
 
 
 def test_get_dg_ranks_exact_match_ignores_periods(monkeypatch, caplog):
@@ -229,7 +237,9 @@ def test_get_live_golf_contest_uses_dfs_common(monkeypatch):
     monkeypatch.setattr(
         read_datagolf.contests,
         "get_live_contest",
-        lambda db_path, sport: LiveRow() if db_path == "/tmp/contests.db" and sport == "GOLF" else None,
+        lambda db_path, sport: (
+            LiveRow() if db_path == "/tmp/contests.db" and sport == "GOLF" else None
+        ),
     )
 
     row = read_datagolf.get_live_golf_contest()
@@ -282,7 +292,6 @@ def test_force_run_skips_lookup_logs(monkeypatch, caplog):
 
 
 def test_main_exits_without_live_contest(monkeypatch, caplog):
-    monkeypatch.setattr(read_datagolf.logging.config, "fileConfig", lambda *args, **kwargs: None)
     monkeypatch.setenv("DG_USE_CONTEST_STATE", "1")
     monkeypatch.setenv("DFS_STATE_DIR", "/tmp/dfs_state")
     monkeypatch.setattr(read_datagolf, "get_live_golf_contest", lambda: None)
@@ -298,19 +307,26 @@ def test_main_exits_without_live_contest(monkeypatch, caplog):
 
 def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
     full_data = {"full": "data"}
-    dict_players = {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}}
+    dict_players = {
+        "JOHN DOE": {
+            "place": "1",
+            "total_score": "-1",
+            "thru_hole": "F",
+            "today_score": "-2",
+            "perc_make_cut": "10%",
+        }
+    }
     dg_ranks = [["1", "-1", "F", "-2", "10%"]]
     dg_probs = [["-1", None, "10%"]]
 
     monkeypatch.setenv("DG_SAVE_API", "1")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(read_datagolf.logging.config, "fileConfig", lambda *args, **kwargs: None)
     monkeypatch.setattr(read_datagolf, "fetch_main_data", lambda *args, **kwargs: full_data)
     monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: dict_players)
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: dg_ranks)
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: dg_probs)
     monkeypatch.setattr(
-        sheets_service,
+        read_datagolf,
         "build_dfs_sheet_service",
         lambda sport, **_kwargs: FakeSheetService(None, sport),
     )
@@ -329,9 +345,10 @@ def test_main_writes_data_and_saves_api(monkeypatch, tmp_path):
 
 
 def test_main_skips_empty_writes(monkeypatch):
-    monkeypatch.setattr(read_datagolf.logging.config, "fileConfig", lambda *args, **kwargs: None)
     monkeypatch.setattr(read_datagolf, "fetch_main_data", lambda *args, **kwargs: {"full": "data"})
-    monkeypatch.setattr(read_datagolf, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {}})
+    monkeypatch.setattr(
+        read_datagolf, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {}}
+    )
     monkeypatch.setattr(read_datagolf, "get_dg_ranks", lambda *args, **kwargs: [])
     monkeypatch.setattr(read_datagolf, "build_cutline_probs", lambda *args, **kwargs: [])
     monkeypatch.setattr(
@@ -343,17 +360,47 @@ def test_main_skips_empty_writes(monkeypatch):
     read_datagolf.main(["--force-run"])
 
 
+def test_main_help_exits_without_runtime(monkeypatch):
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("fetch_main_data should not run for --help")
+
+    monkeypatch.setattr(read_datagolf, "fetch_main_data", _boom)
+
+    with pytest.raises(SystemExit) as exc:
+        read_datagolf.main(["--help"])
+
+    assert exc.value.code == 0
+
+
 def test_main_block_runs(monkeypatch):
     monkeypatch.setenv("DG_SAVE_API", "0")
-    monkeypatch.setattr(logging.config, "fileConfig", lambda *args, **kwargs: None)
+    monkeypatch.setattr(read_datagolf.app_logging, "configure_logging", lambda: None)
+    monkeypatch.setattr(read_datagolf, "load_dotenv", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(sys, "argv", ["read_datagolf.py", "--force-run"])
     monkeypatch.setattr(datagolf_api, "fetch_main_data", lambda *args, **kwargs: {"full": "data"})
-    monkeypatch.setattr(datagolf_api, "build_players_dict", lambda *args, **kwargs: {"JOHN DOE": {"place": "1", "total_score": "-1", "thru_hole": "F", "today_score": "-2", "perc_make_cut": "10%"}})
+    monkeypatch.setattr(
+        datagolf_api,
+        "build_players_dict",
+        lambda *args, **kwargs: {
+            "JOHN DOE": {
+                "place": "1",
+                "total_score": "-1",
+                "thru_hole": "F",
+                "today_score": "-2",
+                "perc_make_cut": "10%",
+            }
+        },
+    )
     monkeypatch.setattr(datagolf_api, "build_cutline_probs", lambda *args, **kwargs: [])
     monkeypatch.setattr(
-        sheets_service,
+        read_datagolf,
         "build_dfs_sheet_service",
         lambda sport, **_kwargs: FakeSheetService(None, sport),
     )
 
-    runpy.run_path(str(read_datagolf.__file__), run_name="__main__")
+    wrapper_path = Path(__file__).resolve().parents[1] / "read_datagolf.py"
+    src_path = str(wrapper_path.parent / "src")
+    if src_path in sys.path:
+        sys.path.remove(src_path)
+    sys.path.append(src_path)
+    runpy.run_path(str(wrapper_path), run_name="__main__")

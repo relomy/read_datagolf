@@ -35,4 +35,3 @@ def service_account_path() -> Path:
 def load_settings() -> common_config.ReadDataGolfSettings:
     loaded = common_config.load_json_config(str(config_json_path()))
     return common_config.resolve_read_datagolf_settings(loaded)
-

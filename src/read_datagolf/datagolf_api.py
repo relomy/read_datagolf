@@ -1,5 +1,6 @@
 """Helpers for reading and normalizing DataGolf live model API responses."""
 
+import importlib
 import json
 import logging
 import re
@@ -7,7 +8,7 @@ import time
 from typing import Any
 
 try:
-    import requests
+    requests: Any = importlib.import_module("requests")
 except ModuleNotFoundError:  # pragma: no cover - only used in offline test runs
     requests = None
 
@@ -43,7 +44,7 @@ def _request_jsonp(
     timeout: int = DEFAULT_TIMEOUT,
     retries: int = DEFAULT_RETRIES,
     backoff: float = DEFAULT_BACKOFF,
-    session: "requests.Session | None" = None,
+    session: Any | None = None,
 ) -> Any:
     """Fetch JSONP from url with simple retry/backoff and parse to JSON."""
     if requests is None:
@@ -63,6 +64,8 @@ def _request_jsonp(
             last_exc = exc
             if attempt < retries - 1:
                 time.sleep(backoff * (2**attempt))
+    if last_exc is None:
+        raise RuntimeError("request failed without exception")
     raise last_exc
 
 
@@ -103,9 +106,7 @@ def fetch_player_data(players_last_first: list[str]) -> dict[str, Any]:
     return _request_jsonp(url, params=params)
 
 
-def extract_players_last_first(
-    main_data: dict[str, Any], tour: str = "pga"
-) -> list[str]:
+def extract_players_last_first(main_data: Any, tour: str = "pga") -> list[str]:
     """Extract players in "Last, First" format for get-player-data.
 
     Handles the "mini" payload structure (uses `lb` rows under `tour`) and
@@ -121,11 +122,7 @@ def extract_players_last_first(
                     players.append(f"{last}, {first}")
             return players
         if "main" in main_data:
-            return [
-                row.get("name", "")
-                for row in main_data.get("main", [])
-                if row.get("name")
-            ]
+            return [row.get("name", "") for row in main_data.get("main", []) if row.get("name")]
     return []
 
 
@@ -183,13 +180,9 @@ def build_cutline_probs(main_data: dict[str, Any]) -> list[list[str | None]]:
     return values
 
 
-def mode_is_mini(main_data: dict[str, Any], tour: str = "pga") -> bool:
+def mode_is_mini(main_data: Any, tour: str = "pga") -> bool:
     """Return True when the payload matches the mini leaderboard shape."""
-    return (
-        isinstance(main_data, dict)
-        and tour in main_data
-        and "lb" in main_data[tour]
-    )
+    return isinstance(main_data, dict) and tour in main_data and "lb" in main_data[tour]
 
 
 def _iter_player_rows(main_data: dict[str, Any]) -> list[dict[str, str]]:
@@ -284,9 +277,7 @@ def _find_today_in_value(value: Any) -> Any:
     return None
 
 
-def _lookup_today(
-    today_map: dict[str, str], last_first: str, display_name: str
-) -> str | None:
+def _lookup_today(today_map: dict[str, str], last_first: str, display_name: str) -> str | None:
     for key in (_name_key(last_first), _name_key(display_name)):
         if key and key in today_map:
             return today_map[key]

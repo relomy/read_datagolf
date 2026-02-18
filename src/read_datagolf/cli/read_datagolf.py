@@ -1,9 +1,10 @@
 """Read from DataGolf live model API and upload results to DFS spreadsheet."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
-import logging.config
 import os
 from os import getenv
 from time import strftime
@@ -13,8 +14,9 @@ from dfs_common import config as common_config
 from dfs_common import contests, state
 from jellyfish import jaro_winkler_similarity
 
+from read_datagolf import config as app_config
+from read_datagolf import logging as app_logging
 from read_datagolf.datagolf_api import build_cutline_probs, build_players_dict, fetch_main_data
-from read_datagolf.dfs_sheet_service import DfsSheetService
 from read_datagolf.sheets_service import build_dfs_sheet_service
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 try:
     from dotenv import load_dotenv
 except ImportError:  # pragma: no cover
+
     def load_dotenv(*_args, **_kwargs):
         return False
 
@@ -52,7 +55,7 @@ def _player_last_name(normalized_name: str) -> str:
     return tokens[-1] if tokens else ""
 
 
-def parse_args(argv=None):
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--force-run",
@@ -67,7 +70,7 @@ def should_run(
     force_run: bool,
     settings: common_config.ReadDataGolfSettings | None = None,
 ) -> bool:
-    cfg = settings or common_config.resolve_read_datagolf_settings()
+    cfg = settings or app_config.load_settings()
     use_contest_state = cfg.dg_use_contest_state
     has_state_dir = bool(cfg.dfs_state_dir or getenv("DFS_STATE_DIR"))
 
@@ -78,8 +81,7 @@ def should_run(
                 _ = get_live_golf_contest()
             except RuntimeError:
                 logger.warning(
-                    "DFS_STATE_DIR set but contest lookup failed; "
-                    "continuing due to --force-run."
+                    "DFS_STATE_DIR set but contest lookup failed; continuing due to --force-run."
                 )
         return True
 
@@ -183,7 +185,9 @@ def get_dg_ranks(
                 last_name = _player_last_name(player)
                 if last_name:
                     same_last = [
-                        name for name in normalized_keys.values() if name.split() and name.split()[-1] == last_name
+                        name
+                        for name in normalized_keys.values()
+                        if name.split() and name.split()[-1] == last_name
                     ]
                     if same_last:
                         logger.warning(
@@ -204,26 +208,29 @@ def get_dg_ranks(
                 ]
                 if close:
                     close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
-                    logger.warning("%s unmatched; suggestions above threshold: %s", player, close_text)
+                    logger.warning(
+                        "%s unmatched; suggestions above threshold: %s", player, close_text
+                    )
 
     return values
 
 
-def main(argv=None) -> None:
+def _apply_settings_to_env(settings: common_config.ReadDataGolfSettings) -> None:
+    if settings.dfs_state_dir and not getenv("DFS_STATE_DIR"):
+        os.environ["DFS_STATE_DIR"] = settings.dfs_state_dir
+    if settings.spreadsheet_id and not getenv("SPREADSHEET_ID"):
+        os.environ["SPREADSHEET_ID"] = settings.spreadsheet_id
+
+
+def main(argv: list[str] | None = None) -> None:
     """Fetch live model data and write standings to the DFS sheet.
 
     TODO(read_datagolf.main): Confirm expected worksheet names and column layout
         for the DFS sheet beyond the hardcoded "GOLF" usage.
     """
-    logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
-    load_dotenv()
-    file_config = common_config.load_json_config()
-    settings = common_config.resolve_read_datagolf_settings(file_config)
-    if settings.dfs_state_dir and not getenv("DFS_STATE_DIR"):
-        os.environ["DFS_STATE_DIR"] = settings.dfs_state_dir
-    if settings.spreadsheet_id and not getenv("SPREADSHEET_ID"):
-        os.environ["SPREADSHEET_ID"] = settings.spreadsheet_id
     args = parse_args(argv)
+    settings = app_config.load_settings()
+    _apply_settings_to_env(settings)
     if not should_run(force_run=args.force_run, settings=settings):
         logger.info("No live contests found; exiting.")
         return
@@ -275,7 +282,9 @@ def main(argv=None) -> None:
         sheet.write_columns("L", "N", dg_probs, start_row=4)
 
 
-def run_cli(argv=None) -> None:
+def run_cli(argv: list[str] | None = None) -> None:
+    app_logging.configure_logging()
+    load_dotenv()
     main(argv)
 
 

@@ -6,6 +6,7 @@ from typing import Any
 
 from dfs_common.sheets import SheetClient, service_account_provider
 
+from read_datagolf import config as app_config
 from read_datagolf.dfs_sheet_repository import DfsSheetRepository
 from read_datagolf.dfs_sheet_service import DfsSheetService
 
@@ -30,7 +31,7 @@ def make_sheet_client(
 ) -> SheetClient:
     resolved_spreadsheet_id = _resolve_spreadsheet_id(spreadsheet_id)
     if credentials_provider is None and service is None:
-        credentials_provider = service_account_provider("client_secret.json")
+        credentials_provider = service_account_provider(str(app_config.service_account_path()))
     return SheetClient(
         spreadsheet_id=resolved_spreadsheet_id,
         service=service,

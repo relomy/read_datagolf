@@ -1,5 +1,4 @@
 import json
-import math
 from types import SimpleNamespace
 
 import pytest
@@ -36,7 +35,7 @@ def _ensure_requests(monkeypatch):
 
 
 def test_parse_jsonp_valid():
-    assert api._parse_jsonp("cb({\"a\": 1})") == {"a": 1}
+    assert api._parse_jsonp('cb({"a": 1})') == {"a": 1}
 
 
 def test_parse_jsonp_invalid():
@@ -45,7 +44,7 @@ def test_parse_jsonp_invalid():
 
 
 def test_parse_json_or_jsonp_json():
-    assert api._parse_json_or_jsonp("  {\"a\": 2} ") == {"a": 2}
+    assert api._parse_json_or_jsonp('  {"a": 2} ') == {"a": 2}
 
 
 def test_parse_json_or_jsonp_jsonp():
@@ -71,7 +70,7 @@ def test_request_jsonp_retries_and_backoff(monkeypatch):
         [
             RuntimeError("boom"),
             RuntimeError("still boom"),
-            FakeResponse("{\"ok\": true}"),
+            FakeResponse('{"ok": true}'),
         ]
     )
     sleeps = []
@@ -111,8 +110,8 @@ def test_request_jsonp_handles_http_error(monkeypatch):
     _ensure_requests(monkeypatch)
     session = FakeSession(
         [
-            FakeResponse("{\"ok\": true}", status_error=RuntimeError("http")),
-            FakeResponse("{\"ok\": true}"),
+            FakeResponse('{"ok": true}', status_error=RuntimeError("http")),
+            FakeResponse('{"ok": true}'),
         ]
     )
     sleeps = []
@@ -228,13 +227,7 @@ def test_mode_is_mini():
 
 
 def test_iter_player_rows_mini():
-    data = {
-        "pga": {
-            "lb": [
-                {"f": "A", "l": "B", "p": "T1", "s": "-3", "t": "F", "w": "50%"}
-            ]
-        }
-    }
+    data = {"pga": {"lb": [{"f": "A", "l": "B", "p": "T1", "s": "-3", "t": "F", "w": "50%"}]}}
     rows = api._iter_player_rows(data)
     assert rows == [
         {
@@ -315,10 +308,12 @@ def test_build_today_map_list():
 def test_find_today_in_value_dict_and_list():
     assert api._find_today_in_value({"today": 2, "score_today": 3}) == 2
     assert (
-        api._find_today_in_value([
-            {"today": -1},
-            {"current_today": 4},
-        ])
+        api._find_today_in_value(
+            [
+                {"today": -1},
+                {"current_today": 4},
+            ]
+        )
         == 4
     )
 

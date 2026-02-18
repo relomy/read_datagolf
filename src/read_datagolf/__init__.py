@@ -1,2 +1,1 @@
 """read_datagolf package."""
-
