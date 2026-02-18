@@ -261,7 +261,13 @@ def test_should_run_skips_lookup_when_contest_state_disabled(monkeypatch):
     monkeypatch.delenv("DG_USE_CONTEST_STATE", raising=False)
     monkeypatch.delenv("DFS_STATE_DIR", raising=False)
     monkeypatch.setattr(read_datagolf, "get_live_golf_contest", _fail)
-    assert read_datagolf.should_run(force_run=False) is True
+    settings = read_datagolf.common_config.ReadDataGolfSettings(
+        spreadsheet_id=None,
+        dfs_state_dir=None,
+        dg_use_contest_state=False,
+        dg_save_api=False,
+    )
+    assert read_datagolf.should_run(force_run=False, settings=settings) is True
 
 
 def test_should_run_uses_settings_when_env_missing(monkeypatch):
