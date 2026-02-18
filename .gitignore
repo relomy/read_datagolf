@@ -54,6 +54,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.ruff_cache/
 nosetests.xml
 coverage.xml
 *.cover
@@ -171,3 +172,4 @@ tmp/**
 test-results.xml
 !build/
 .worktrees/
+!.python-version
