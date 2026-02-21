@@ -24,10 +24,6 @@ def config_json_path() -> Path:
     return _path_from_env("READ_DATAGOLF_CONFIG_FILE", repo_file("config.json"))
 
 
-def logging_ini_path() -> Path:
-    return _path_from_env("READ_DATAGOLF_LOGGING_INI", repo_file("logging.ini"))
-
-
 def service_account_path() -> Path:
     return _path_from_env("READ_DATAGOLF_SERVICE_ACCOUNT_FILE", repo_file("client_secret.json"))
 

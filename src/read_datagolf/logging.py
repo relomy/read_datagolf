@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import logging
-import logging.config
 import os
 
-from read_datagolf import config as app_config
-
 NOISY_LIBRARY_LOGGERS = ("googleapiclient.discovery", "urllib3")
+_HANDLER_MARKER = "_read_datagolf_configured_handler"
 
 
 def _resolve_level(default: str = "DEBUG") -> int:
@@ -22,18 +20,17 @@ def _configure_library_log_levels() -> None:
 
 
 def configure_logging() -> logging.Logger:
-    config_path = app_config.logging_ini_path()
-    if config_path.is_file():
-        logging.config.fileConfig(str(config_path), disable_existing_loggers=False)
-        logger = logging.getLogger()
-        logger.setLevel(_resolve_level())
-        _configure_library_log_levels()
-        return logger
-
     logger = logging.getLogger()
+    for handler in logger.handlers:
+        if getattr(handler, _HANDLER_MARKER, False):
+            logger.setLevel(_resolve_level())
+            _configure_library_log_levels()
+            return logger
+
     if not logger.handlers:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+        setattr(handler, _HANDLER_MARKER, True)
         logger.addHandler(handler)
     logger.setLevel(_resolve_level())
     _configure_library_log_levels()
