@@ -37,6 +37,12 @@ Before claiming completion:
 3. Run lint and type checks relevant to touched files.
 4. Report any failing checks with exact commands and failure summaries.
 
+## Commit Message Style
+- Required format: `type(scope): short summary`
+- Use lowercase `type` (`feat`, `fix`, `test`, `docs`, `chore`, etc.)
+- Keep summary imperative and concise.
+- Non-conforming commit messages are not allowed.
+
 ## Output Expectations
 In the final response, include:
 1. What changed (files and behavior).
