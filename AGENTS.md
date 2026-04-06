@@ -22,8 +22,9 @@ Apply them for all work under `read_datagolf/`.
 Use these defaults unless blocked by an environment issue:
 1. `uv sync`
 2. `uv run pytest`
-3. `uv run ruff check`
-4. `uv run ty check`
+3. `uv run ruff format --check --exclude .ci .`
+4. `uv run ruff check`
+5. `uv run ty check`
 
 ## Change Boundaries
 - Keep edits in this repository unless the user explicitly asks for cross-repo changes.
@@ -32,8 +33,9 @@ Use these defaults unless blocked by an environment issue:
 ## Verification Before Completion
 Before claiming completion:
 1. Run relevant tests for touched functionality.
-2. Run lint and type checks relevant to touched files.
-3. Report any failing checks with exact commands and failure summaries.
+2. Mandatory pre-merge gate: run `uv run ruff format --check --exclude .ci .` with the same priority as tests.
+3. Run lint and type checks relevant to touched files.
+4. Report any failing checks with exact commands and failure summaries.
 
 ## Output Expectations
 In the final response, include:
