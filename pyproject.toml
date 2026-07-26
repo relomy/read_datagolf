@@ -7,17 +7,22 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
   "requests>=2.33.0",
   "beautifulsoup4",
+  "soupsieve>=2.8.4",
   "selenium",
   "google-api-python-client",
   "oauth2client",
   "jellyfish",
-  "python-dotenv",
+  "python-dotenv>=1.2.2",
   "dfs-common",
-  "cryptography>=46.0.6",
+  "cryptography>=48.0.1",
+  "httplib2>=0.32.0",
+  "idna>=3.15",
+  "pyasn1>=0.6.4",
+  "urllib3>=2.7.0",
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "ty"]
+dev = ["pytest>=9.0.3", "ruff", "ty"]
 
 [tool.uv]
 package = true
