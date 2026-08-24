@@ -24,7 +24,8 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 ## Shared Infrastructure
 
 - Google Sheets primitives are provided by `dfs_common`.
-- Local development expects `dfs_common` as a sibling directory via `pyproject.toml:[tool.uv.sources]`.
+- `dfs-common` is installed as a git dependency tracking `main` (see
+  `pyproject.toml:[tool.uv.sources]`); no sibling checkout is required.
 
 ## Configuration
 

@@ -146,7 +146,7 @@ wheels = [
 [[package]]
 name = "dfs-common"
 version = "0.1.2"
-source = { editable = "../dfs_common" }
+source = { git = "https://github.com/relomy/dfs-common?branch=main#f28f262074153e6d64d9280ed751454126c7cbfa" }
 dependencies = [
     { name = "cryptography" },
     { name = "google-api-python-client" },
@@ -156,25 +156,6 @@ dependencies = [
     { name = "pyasn1" },
     { name = "requests" },
     { name = "urllib3" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cryptography", specifier = ">=48.0.1" },
-    { name = "google-api-python-client" },
-    { name = "google-auth" },
-    { name = "httplib2", specifier = ">=0.32.0" },
-    { name = "idna", specifier = ">=3.15" },
-    { name = "pyasn1", specifier = ">=0.6.4" },
-    { name = "requests", specifier = ">=2.33.0" },
-    { name = "urllib3", specifier = ">=2.7.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "ty" },
 ]
 
 [[package]]
@@ -521,7 +502,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4" },
     { name = "cryptography", specifier = ">=48.0.1" },
-    { name = "dfs-common", editable = "../dfs_common" },
+    { name = "dfs-common", git = "https://github.com/relomy/dfs-common?branch=main" },
     { name = "google-api-python-client" },
     { name = "httplib2", specifier = ">=0.32.0" },
     { name = "idna", specifier = ">=3.15" },
