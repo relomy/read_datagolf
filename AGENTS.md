@@ -27,11 +27,17 @@ Use these defaults unless blocked by an environment issue:
 4. `uv run ruff check`
 5. `uv run ty check`
 
-## dfs-common dependency
+## dfs-common Dependency
 
 `dfs-common` installs from `relomy/dfs-common` over git; no sibling checkout
-is needed. `uv sync` installs whatever commit `uv.lock` has recorded — it does
-not silently advance to newer `main` commits. To refresh:
+is needed. This requires non-interactive GitHub read access to the private
+repo: a git credential helper for local dev (e.g. `gh auth login`), the
+session's repo scope for Claude/Codex cloud sessions, and the
+`DFS_COMMON_CHECKOUT_TOKEN` secret (rewritten into a git `insteadOf` URL) for
+CI — see `.github/workflows/ci.yml`.
+
+`uv sync` installs whatever commit `uv.lock` has recorded — it does not
+silently advance to newer `main` commits. To refresh:
 
 ```bash
 uv lock --upgrade-package dfs-common
@@ -40,8 +46,9 @@ uv run pytest
 ```
 
 Commit the resulting `uv.lock` diff once the refreshed dependency has been
-tested. Use `uv sync --locked` for verification that must fail on lockfile
-drift instead of rewriting it (this is what CI runs).
+tested. Use `uv sync --locked` (or `uv run --locked ...`) for verification
+that must fail on lockfile drift instead of rewriting it (this is what CI
+runs).
 
 For temporary local development against unpublished `dfs_common` changes,
 `[tool.uv.sources]` can be swapped for an editable sibling path
