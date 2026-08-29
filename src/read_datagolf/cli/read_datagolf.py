@@ -98,6 +98,93 @@ def should_run(
         return False
 
 
+def _row_for_key(dict_players: Mapping[str, Mapping[str, str]], key: str) -> list[str]:
+    stats = dict_players[key]
+    return [
+        stats["place"],
+        stats["total_score"],
+        stats["thru_hole"],
+        stats["today_score"],
+        stats["perc_make_cut"],
+    ]
+
+
+def _rank_candidates(player: str, normalized_keys: Mapping[str, str]) -> list[tuple[float, str]]:
+    suggestions = [
+        (jaro_winkler_similarity(player, candidate), candidate) for candidate in normalized_keys
+    ]
+    suggestions.sort(reverse=True)
+    return suggestions
+
+
+def _log_best_candidate(
+    player: str,
+    best_candidate: str | None,
+    best_score: float,
+    normalized_keys: Mapping[str, str],
+) -> None:
+    if best_candidate is None:
+        return
+    best_candidate_name = normalized_keys[best_candidate]
+    logger.warning(
+        "%s unmatched; best candidate %s scored %.3f",
+        player,
+        best_candidate_name,
+        best_score,
+    )
+
+
+def _log_top_candidates(
+    player: str, suggestions: list[tuple[float, str]], normalized_keys: Mapping[str, str]
+) -> None:
+    top_candidates = ", ".join(
+        f"{normalized_keys[candidate]} ({score:.3f})" for score, candidate in suggestions[:3]
+    )
+    if top_candidates:
+        logger.warning("%s unmatched; top candidates: %s", player, top_candidates)
+
+
+def _log_last_name_matches(player: str, normalized_keys: Mapping[str, str]) -> None:
+    last_name = _player_last_name(player)
+    if not last_name:
+        return
+    same_last = [
+        name for name in normalized_keys.values() if name.split() and name.split()[-1] == last_name
+    ]
+    if same_last:
+        logger.warning(
+            "%s unmatched; API contains last-name matches: %s",
+            player,
+            ", ".join(same_last[:5]),
+        )
+    else:
+        logger.warning("%s unmatched; API has no players with last name %s", player, last_name)
+
+
+def _log_close_suggestions(
+    player: str, suggestions: list[tuple[float, str]], normalized_keys: Mapping[str, str]
+) -> None:
+    close = [
+        (normalized_keys[candidate], score) for score, candidate in suggestions[:5] if score >= 0.85
+    ]
+    if close:
+        close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
+        logger.warning("%s unmatched; suggestions above threshold: %s", player, close_text)
+
+
+def _log_unmatched(
+    player: str,
+    best_candidate: str | None,
+    best_score: float,
+    suggestions: list[tuple[float, str]],
+    normalized_keys: Mapping[str, str],
+) -> None:
+    _log_best_candidate(player, best_candidate, best_score, normalized_keys)
+    _log_top_candidates(player, suggestions, normalized_keys)
+    _log_last_name_matches(player, normalized_keys)
+    _log_close_suggestions(player, suggestions, normalized_keys)
+
+
 def get_dg_ranks(
     players: Iterable[str],
     dict_players: Mapping[str, Mapping[str, str]],
@@ -133,84 +220,18 @@ def get_dg_ranks(
 
         exact_key = normalized_keys.get(player)
         if exact_key is not None:
-            values.append(
-                [
-                    dict_players[exact_key]["place"],
-                    dict_players[exact_key]["total_score"],
-                    dict_players[exact_key]["thru_hole"],
-                    dict_players[exact_key]["today_score"],
-                    dict_players[exact_key]["perc_make_cut"],
-                ]
-            )
+            values.append(_row_for_key(dict_players, exact_key))
+            continue
+
+        suggestions = _rank_candidates(player, normalized_keys)
+        best_score, best_candidate = suggestions[0] if suggestions else (0.0, None)
+        if best_candidate and best_score > 0.85:
+            matched_key = normalized_keys[best_candidate]
+            logger.info("%s: auto-matched to %s (%.3f)", player, matched_key, best_score)
+            values.append(_row_for_key(dict_players, matched_key))
         else:
-            suggestions = []
-            for candidate in normalized_keys:
-                score = jaro_winkler_similarity(player, candidate)
-                suggestions.append((score, candidate))
-            suggestions.sort(reverse=True)
-            best_score, best_candidate = suggestions[0] if suggestions else (0.0, None)
-            if best_candidate and best_score > 0.85:
-                matched_key = normalized_keys[best_candidate]
-                logger.info(
-                    "%s: auto-matched to %s (%.3f)",
-                    player,
-                    matched_key,
-                    best_score,
-                )
-                values.append(
-                    [
-                        dict_players[matched_key]["place"],
-                        dict_players[matched_key]["total_score"],
-                        dict_players[matched_key]["thru_hole"],
-                        dict_players[matched_key]["today_score"],
-                        dict_players[matched_key]["perc_make_cut"],
-                    ]
-                )
-            else:
-                values.append(["???", "", "", "", ""])
-                if best_candidate is not None:
-                    best_candidate_name = normalized_keys[best_candidate]
-                    logger.warning(
-                        "%s unmatched; best candidate %s scored %.3f",
-                        player,
-                        best_candidate_name,
-                        best_score,
-                    )
-                top_candidates = ", ".join(
-                    f"{normalized_keys[candidate]} ({score:.3f})"
-                    for score, candidate in suggestions[:3]
-                )
-                if top_candidates:
-                    logger.warning("%s unmatched; top candidates: %s", player, top_candidates)
-                last_name = _player_last_name(player)
-                if last_name:
-                    same_last = [
-                        name
-                        for name in normalized_keys.values()
-                        if name.split() and name.split()[-1] == last_name
-                    ]
-                    if same_last:
-                        logger.warning(
-                            "%s unmatched; API contains last-name matches: %s",
-                            player,
-                            ", ".join(same_last[:5]),
-                        )
-                    else:
-                        logger.warning(
-                            "%s unmatched; API has no players with last name %s",
-                            player,
-                            last_name,
-                        )
-                close = [
-                    (normalized_keys[candidate], score)
-                    for score, candidate in suggestions[:5]
-                    if score >= 0.85
-                ]
-                if close:
-                    close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
-                    logger.warning(
-                        "%s unmatched; suggestions above threshold: %s", player, close_text
-                    )
+            values.append(["???", "", "", "", ""])
+            _log_unmatched(player, best_candidate, best_score, suggestions, normalized_keys)
 
     return values
 
