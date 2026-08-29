@@ -12,8 +12,8 @@ import pytest
 
 _MODULE_PATH = Path(__file__).resolve().parents[1] / ".github" / "complexity_ratchet.py"
 _spec = importlib.util.spec_from_file_location("complexity_ratchet", _MODULE_PATH)
+assert _spec is not None and _spec.loader is not None
 complexity_ratchet = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
 sys.modules["complexity_ratchet"] = complexity_ratchet
 _spec.loader.exec_module(complexity_ratchet)
 

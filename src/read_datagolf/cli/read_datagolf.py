@@ -117,6 +117,61 @@ def _rank_candidates(player: str, normalized_keys: Mapping[str, str]) -> list[tu
     return suggestions
 
 
+def _log_best_candidate(
+    player: str,
+    best_candidate: str | None,
+    best_score: float,
+    normalized_keys: Mapping[str, str],
+) -> None:
+    if best_candidate is None:
+        return
+    best_candidate_name = normalized_keys[best_candidate]
+    logger.warning(
+        "%s unmatched; best candidate %s scored %.3f",
+        player,
+        best_candidate_name,
+        best_score,
+    )
+
+
+def _log_top_candidates(
+    player: str, suggestions: list[tuple[float, str]], normalized_keys: Mapping[str, str]
+) -> None:
+    top_candidates = ", ".join(
+        f"{normalized_keys[candidate]} ({score:.3f})" for score, candidate in suggestions[:3]
+    )
+    if top_candidates:
+        logger.warning("%s unmatched; top candidates: %s", player, top_candidates)
+
+
+def _log_last_name_matches(player: str, normalized_keys: Mapping[str, str]) -> None:
+    last_name = _player_last_name(player)
+    if not last_name:
+        return
+    same_last = [
+        name for name in normalized_keys.values() if name.split() and name.split()[-1] == last_name
+    ]
+    if same_last:
+        logger.warning(
+            "%s unmatched; API contains last-name matches: %s",
+            player,
+            ", ".join(same_last[:5]),
+        )
+    else:
+        logger.warning("%s unmatched; API has no players with last name %s", player, last_name)
+
+
+def _log_close_suggestions(
+    player: str, suggestions: list[tuple[float, str]], normalized_keys: Mapping[str, str]
+) -> None:
+    close = [
+        (normalized_keys[candidate], score) for score, candidate in suggestions[:5] if score >= 0.85
+    ]
+    if close:
+        close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
+        logger.warning("%s unmatched; suggestions above threshold: %s", player, close_text)
+
+
 def _log_unmatched(
     player: str,
     best_candidate: str | None,
@@ -124,42 +179,10 @@ def _log_unmatched(
     suggestions: list[tuple[float, str]],
     normalized_keys: Mapping[str, str],
 ) -> None:
-    if best_candidate is not None:
-        best_candidate_name = normalized_keys[best_candidate]
-        logger.warning(
-            "%s unmatched; best candidate %s scored %.3f",
-            player,
-            best_candidate_name,
-            best_score,
-        )
-    top_candidates = ", ".join(
-        f"{normalized_keys[candidate]} ({score:.3f})" for score, candidate in suggestions[:3]
-    )
-    if top_candidates:
-        logger.warning("%s unmatched; top candidates: %s", player, top_candidates)
-
-    last_name = _player_last_name(player)
-    if last_name:
-        same_last = [
-            name
-            for name in normalized_keys.values()
-            if name.split() and name.split()[-1] == last_name
-        ]
-        if same_last:
-            logger.warning(
-                "%s unmatched; API contains last-name matches: %s",
-                player,
-                ", ".join(same_last[:5]),
-            )
-        else:
-            logger.warning("%s unmatched; API has no players with last name %s", player, last_name)
-
-    close = [
-        (normalized_keys[candidate], score) for score, candidate in suggestions[:5] if score >= 0.85
-    ]
-    if close:
-        close_text = ", ".join(f"{name} ({score:.3f})" for name, score in close)
-        logger.warning("%s unmatched; suggestions above threshold: %s", player, close_text)
+    _log_best_candidate(player, best_candidate, best_score, normalized_keys)
+    _log_top_candidates(player, suggestions, normalized_keys)
+    _log_last_name_matches(player, normalized_keys)
+    _log_close_suggestions(player, suggestions, normalized_keys)
 
 
 def get_dg_ranks(
