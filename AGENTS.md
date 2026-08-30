@@ -10,7 +10,10 @@ Apply them for all work under `read_datagolf/`.
 - Package manager / runner: `uv`
 - Source code: `src/`
 - Tests: `tests/`
-- Complexity ratchet: `uv run complexity-ratchet --base origin/main --worktree`
+- Dependency groups: `test` is installed by default; `quality` contains Ruff,
+  Ty, Xenon, and complexity-ratchet.
+- Complexity floor: `uv run --group quality xenon --max-absolute C src`
+- Complexity ratchet: `uv run --group quality complexity-ratchet --base origin/main --worktree`
 - Dependency: `dfs-common` from `relomy/dfs-common` (git dependency tracking
   `main`; see `pyproject.toml:[tool.uv.sources]`)
 
@@ -24,9 +27,9 @@ Apply them for all work under `read_datagolf/`.
 Use these defaults unless blocked by an environment issue:
 1. `uv sync`
 2. `uv run pytest`
-3. `uv run ruff format --check .`
-4. `uv run ruff check`
-5. `uv run ty check`
+3. `uv run --group quality ruff format --check .`
+4. `uv run --group quality ruff check`
+5. `uv run --group quality ty check`
 
 ## dfs-common Dependency
 

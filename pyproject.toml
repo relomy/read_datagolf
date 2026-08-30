@@ -22,9 +22,11 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
+test = [
     "pytest>=9.0.3",
-    "radon>=6.0.1",
+]
+quality = [
+    "xenon>=0.9.3",
     "complexity-ratchet",
     "ruff",
     "ty",
@@ -32,7 +34,7 @@ dev = [
 
 [tool.uv]
 package = true
-default-groups = ["dev"]
+default-groups = ["test"]
 
 [tool.uv.sources]
 dfs-common = { git = "https://github.com/relomy/dfs-common", branch = "main" }
