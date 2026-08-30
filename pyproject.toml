@@ -25,6 +25,7 @@ dependencies = [
 dev = [
     "pytest>=9.0.3",
     "radon>=6.0.1",
+    "complexity-ratchet",
     "ruff",
     "ty",
 ]
@@ -35,6 +36,7 @@ default-groups = ["dev"]
 
 [tool.uv.sources]
 dfs-common = { git = "https://github.com/relomy/dfs-common", branch = "main" }
+complexity-ratchet = { git = "https://github.com/relomy/complexity-ratchet", tag = "v0.1.0" }
 
 [build-system]
 requires = ["setuptools>=68"]

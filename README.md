@@ -9,6 +9,7 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 - Lint: `uv run ruff check .`
 - Types: `uv run ty check`
 - Tests: `uv run pytest`
+- Complexity ratchet: `uv run complexity-ratchet --base origin/main --worktree`
 
 ## Entry Points
 

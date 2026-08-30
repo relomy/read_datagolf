@@ -10,6 +10,7 @@ Apply them for all work under `read_datagolf/`.
 - Package manager / runner: `uv`
 - Source code: `src/`
 - Tests: `tests/`
+- Complexity ratchet: `uv run complexity-ratchet --base origin/main --worktree`
 - Dependency: `dfs-common` from `relomy/dfs-common` (git dependency tracking
   `main`; see `pyproject.toml:[tool.uv.sources]`)
 
