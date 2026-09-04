@@ -14,7 +14,7 @@ dependencies = [
   "jellyfish",
   "python-dotenv>=1.2.2",
   "dfs-common",
-  "cryptography>=48.0.1",
+  "cryptography>=50.0.0",
   "httplib2>=0.32.0",
   "idna>=3.15",
   "pyasn1>=0.6.4",
