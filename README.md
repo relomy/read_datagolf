@@ -4,13 +4,9 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 ## Tooling
 
-- Setup: `uv sync`
-- Format: `uv run --group quality ruff format .`
-- Lint: `uv run --group quality ruff check .`
-- Types: `uv run --group quality ty check`
-- Tests: `uv run pytest`
-- Complexity floor: `uv run --group quality xenon --max-absolute C src`
-- Complexity ratchet: `uv run --group quality complexity-ratchet --base origin/main --worktree`
+For setup and development checks, see [`docs/TESTING.md`](docs/TESTING.md).
+To apply formatting fixes, run `uv run --group quality ruff format .`; the
+mandatory completion check is `uv run --group quality ruff format --check .`.
 
 ## Entry Points
 
