@@ -60,7 +60,7 @@ def _request_jsonp(
             resp = sess.get(url, params=params, timeout=timeout)
             resp.raise_for_status()
             return _parse_json_or_jsonp(resp.text)
-        except Exception as exc:  # noqa: BLE001 - surface last failure after retries
+        except Exception as exc:  # surface last failure after retries
             last_exc = exc
             if attempt < retries - 1:
                 time.sleep(backoff * (2**attempt))
@@ -235,31 +235,34 @@ def _build_today_map(player_data: Any | None) -> dict[str, str]:
 
     if isinstance(player_data, dict):
         if "main" in player_data:
-            for row in player_data.get("main", []):
-                name = row.get("name", "")
-                today = row.get("today")
-                if name and today is not None:
-                    today_map[_name_key(name)] = _format_score(today)
+            _add_today_rows(today_map, player_data.get("main", []))
             return today_map
+        _add_today_from_values(today_map, player_data)
+    elif isinstance(player_data, list):
+        _add_today_rows(today_map, player_data)
+    return today_map
 
-        for key, value in player_data.items():
-            if key in {"players", "main", "meta"}:
-                continue
+
+def _add_today_rows(today_map: dict[str, str], rows: Any) -> None:
+    for row in rows:
+        name = row.get("name", "")
+        today = row.get("today")
+        if name and today is not None:
+            today_map[_name_key(name)] = _format_score(today)
+
+
+def _add_today_from_values(today_map: dict[str, str], player_data: dict[str, Any]) -> None:
+    for key, value in player_data.items():
+        if key in {"players", "main", "meta"}:
+            continue
+        today = _find_today_in_value(value)
+        if today is not None:
+            today_map[_name_key(key)] = _format_score(today)
+    if "players" in player_data:
+        for key, value in player_data.get("players", {}).items():
             today = _find_today_in_value(value)
             if today is not None:
                 today_map[_name_key(key)] = _format_score(today)
-        if "players" in player_data:
-            for key, value in player_data.get("players", {}).items():
-                today = _find_today_in_value(value)
-                if today is not None:
-                    today_map[_name_key(key)] = _format_score(today)
-    elif isinstance(player_data, list):
-        for row in player_data:
-            name = row.get("name", "")
-            today = row.get("today")
-            if name and today is not None:
-                today_map[_name_key(name)] = _format_score(today)
-    return today_map
 
 
 def _find_today_in_value(value: Any) -> Any:
