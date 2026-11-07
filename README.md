@@ -15,7 +15,7 @@ mandatory completion check is `uv run --group quality ruff format --check .`.
 
 ## Requirements
 
-- Python `>=3.11,<3.12`
+- Python `>=3.13,<3.14`
 - `client_secret.json` at repo root for Google Sheets access
 - Network access to DataGolf live model endpoint (`src/read_datagolf/datagolf_api.py`)
 

@@ -3,7 +3,7 @@
 ## Repository Context
 
 - Stack: Python
-- Python: `>=3.11,<3.12`
+- Python: `>=3.13,<3.14`
 - Package manager / runner: `uv`
 - Source code: `src/`
 - Tests: `tests/`
