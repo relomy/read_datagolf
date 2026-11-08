@@ -9,7 +9,7 @@
 - Tests: `tests/`
 - Dependency groups: `test` is installed by default; `quality` contains Ruff,
   Ty, Xenon, and complexity-ratchet.
-- Complexity floor: `uv run --group quality xenon --max-absolute C src`
+- Complexity floor: `uv run --group quality xenon --max-absolute B src`
 - Complexity ratchet: `uv run --group quality complexity-ratchet --base origin/main --worktree`
 - Dependency: `dfs-common` from `relomy/dfs-common` (git dependency tracking
   `main`; see `pyproject.toml:[tool.uv.sources]`)
