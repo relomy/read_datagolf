@@ -6,7 +6,7 @@ Read DataGolf live model data and upload results to a DFS spreadsheet.
 
 For setup and development checks, see [`docs/TESTING.md`](docs/TESTING.md).
 To apply formatting fixes, run `uv run --group quality ruff format .`; the
-mandatory completion check is `uv run --group quality ruff format --check .`.
+mandatory completion check is `scripts/check-quality.sh`.
 
 ## Entry Points
 

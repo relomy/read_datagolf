@@ -9,8 +9,6 @@
 - Tests: `tests/`
 - Dependency groups: `test` is installed by default; `quality` contains Ruff,
   Ty, Xenon, and complexity-ratchet.
-- Complexity floor: `uv run --group quality xenon --max-absolute B src`
-- Complexity ratchet: `uv run --group quality complexity-ratchet --base origin/main --worktree`
 - Dependency: `dfs-common` from `relomy/dfs-common` (git dependency tracking
   `main`; see `pyproject.toml:[tool.uv.sources]`)
 
@@ -20,18 +18,15 @@ Use these defaults unless blocked by an environment issue:
 
 1. `uv sync`
 2. `uv run pytest`
-3. `uv run --group quality ruff format --check .`
-4. `uv run --group quality ruff check`
-5. `uv run --group quality ty check`
+3. `scripts/check-quality.sh` — format check, lint, types, complexity floor, and
+   the complexity ratchet against `origin/main`.
 
 The README's `uv run --group quality ruff format .` command applies formatting
-fixes. It is distinct from the mandatory `ruff format --check .` completion
-gate above.
+fixes. It is distinct from the format check inside `scripts/check-quality.sh`.
 
 Before claiming completion, run relevant tests for touched functionality, the
-mandatory pre-merge `uv run ruff format --check .` gate with the same priority
-as tests, and lint and type checks relevant to touched files. Report failing
-checks with exact commands and failure summaries.
+mandatory pre-merge `scripts/check-quality.sh` gate with the same priority as
+tests. Report failing checks with exact commands and failure summaries.
 
 ## dfs-common Dependency
 
